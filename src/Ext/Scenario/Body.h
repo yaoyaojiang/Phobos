@@ -30,12 +30,15 @@ public:
 
 		std::map<int, CellStruct> Waypoints;
 		std::map<int, ExtendedVariable> Variables[2]; // 0 for local, 1 for global
+		Nullable<PhobosFixedString<0x20>> NextMission;
 
 		ExtData(ScenarioClass* OwnerObject) : Extension<ScenarioClass>(OwnerObject)
 			, ShowBriefing { false }
 			, BriefingTheme { -1 }
 			, Waypoints { }
 			, Variables { }
+			, NextMission { }
+
 		{ }
 
 		void SetVariableToByID(bool bIsGlobal, int nIndex, char bState);

@@ -13,6 +13,7 @@
 #include <Ext/SWType/Body.h>
 #include <Misc/FlyingStrings.h>
 #include <Utilities/Debug.h>
+#include <New/Entity/BannerClass.h>
 
 DEFINE_HOOK(0x777C41, UI_ApplyAppIcon, 0x9)
 {
@@ -353,6 +354,15 @@ DEFINE_HOOK(0x604985, GetDialogUIStatusLabels_ShowBriefing, 0x5)
 		return SkipGameCode;
 	}
 
+	return 0;
+}
+
+DEFINE_HOOK(0x6D4B25, TacticalClass_Render_Banner, 0x5)
+{
+	for (const auto& pBanner : BannerClass::Array)
+	{
+		pBanner->Render();
+	}
 	return 0;
 }
 

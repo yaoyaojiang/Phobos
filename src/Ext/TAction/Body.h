@@ -29,6 +29,11 @@ enum class PhobosTriggerAction : unsigned int
 	UpdateMessageBuffer=707,
 	BindTeamMemberToTag = 708,
 	BindTechnologyToTag=709,
+	UpdateMoney = 710,
+	UpdateNextScenario = 711,
+	CreateBannerGlobal = 712, // any banner w/ global variable
+	CreateBannerLocal = 713, // any banner w/ local variable
+	DeleteBanner = 714
 };
 
 class TActionExt
@@ -83,6 +88,11 @@ public:
 	ACTION_FUNC(UpdateMessageBuffer);
 	ACTION_FUNC(BindTeamMemberToTag);
 	ACTION_FUNC(BindTechnologyToTag);
+	ACTION_FUNC(UpdateMoney);
+	ACTION_FUNC(UpdateNextScenario);
+	ACTION_FUNC(CreateBannerGlobal);
+	ACTION_FUNC(CreateBannerLocal);
+	ACTION_FUNC(DeleteBanner);
 	static bool RunSuperWeaponAt(TActionClass* pThis, int X, int Y);
 
 #undef ACTION_FUNC

@@ -245,7 +245,22 @@ enum class DisplayInfoType : BYTE
 	Occupants = 8,
 	GattlingStage = 9
 };
+enum class BannerType : int
+{
+	PCX = 0,
+	CSF = 1,
+	SHP = 2,
+	VariableFormat = 3
+};
 
+enum class BannerNumberType : int
+{
+	None = 0,
+	Variable = 1,
+	Prefixed = 2,
+	Suffixed = 3,
+	Fraction = 4
+};
 class MouseCursorHotSpotX
 {
 public:

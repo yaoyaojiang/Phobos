@@ -114,7 +114,6 @@ public:
 		GetWaypointCoords(&dest, idx);
 		return dest;
 	}
-
 	//CTOR / DTOR
 protected:
 	ScenarioClass() { THISCALL(0x6832C0); }

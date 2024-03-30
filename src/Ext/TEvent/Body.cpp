@@ -48,6 +48,8 @@ bool TEventExt::Execute(TEventClass* pThis, int iEvent, HouseClass* pHouse, Obje
 		return TEventExt::VariableCheck<false, std::less<int>>(pThis);
 	case PhobosTriggerEvent::LocalVariableEqualsTo:
 		return TEventExt::VariableCheck<false, std::equal_to<int>>(pThis);
+	case PhobosTriggerEvent::LocalVariableNotEqualsTo:
+		return TEventExt::VariableCheck<false, std::not_equal_to<int>>(pThis);
 	case PhobosTriggerEvent::LocalVariableGreaterThanOrEqualsTo:
 		return TEventExt::VariableCheck<false, std::greater_equal<int>>(pThis);
 	case PhobosTriggerEvent::LocalVariableLessThanOrEqualsTo:
@@ -73,6 +75,8 @@ bool TEventExt::Execute(TEventClass* pThis, int iEvent, HouseClass* pHouse, Obje
 		return TEventExt::VariableCheckBinary<false, false, std::less<int>>(pThis);
 	case PhobosTriggerEvent::LocalVariableEqualsToLocalVariable:
 		return TEventExt::VariableCheckBinary<false, false, std::equal_to<int>>(pThis);
+	case PhobosTriggerEvent::LocalVariableNotEqualsToLocalVariable:
+		return TEventExt::VariableCheckBinary<false, false, std::not_equal_to<int>>(pThis);
 	case PhobosTriggerEvent::LocalVariableGreaterThanOrEqualsToLocalVariable:
 		return TEventExt::VariableCheckBinary<false, false, std::greater_equal<int>>(pThis);
 	case PhobosTriggerEvent::LocalVariableLessThanOrEqualsToLocalVariable:

@@ -47,7 +47,8 @@ enum PhobosTriggerEvent
 	GlobalVariableGreaterThanOrEqualsToGlobalVariable = 533,
 	GlobalVariableLessThanOrEqualsToGlobalVariable = 534,
 	GlobalVariableAndIsTrueGlobalVariable = 535,
-
+	LocalVariableNotEqualsTo=536,
+	LocalVariableNotEqualsToLocalVariable=537,
 	ShieldBroken = 600,
 	HouseOwnsTechnoType = 601,
 	HouseDoesntOwnTechnoType = 602,

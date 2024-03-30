@@ -25,3 +25,10 @@ DEFINE_HOOK(0x6870D7, ReadScenario_LoadingScreens, 0x5)
 
 	return SkipGameCode;
 }
+DEFINE_HOOK(0x5AE192, SelectNextMission, 0x6)
+{
+	if (ScenarioExt::Global()->NextMission.isset())
+		R->EAX(ScenarioExt::Global()->NextMission.Get().data());
+
+	return 0;
+}

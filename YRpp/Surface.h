@@ -140,7 +140,6 @@ class NOVTABLE BSurface : public XSurface
 {
 public:
 	static constexpr constant_ptr<BSurface, 0xB2D928> VoxelSurface {};
-
 	BSurface() : XSurface(), Buffer { this->Width * this->Height * 2 } { BytesPerPixel = 2; ((int*)this)[0] = 0x7E2070; }
 
 	MemoryBuffer Buffer;

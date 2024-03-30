@@ -13,6 +13,8 @@
 #include <Ext/CaptureManager/Body.h>
 #include <TriggerClass.h>
 #include <TriggerTypeClass.h>
+#include <New/Type/BannerTypeClass.h>
+#include <New/Entity/BannerClass.h>
 
 //Static init
 TActionExt::ExtContainer TActionExt::ExtMap;
@@ -55,6 +57,17 @@ void splitByAtSymbol(const char* str, char delim, char result[][32], int resultS
 	{
 		strncpy(result[index], tokenStart, strlen(tokenStart) + 1); // 包括null终止符  
 	}
+}
+
+wchar_t* ConvertWchar(const char* asciiStr)
+{
+	size_t len = strlen(asciiStr) + 1; // 包括null终止符  
+	wchar_t* wideStr = new wchar_t[len];
+	for (size_t i = 0; i < len; ++i)
+	{
+		wideStr[i] = static_cast<wchar_t>(asciiStr[i]);
+	}
+	return wideStr;
 }
 char* WCharToUtf8(const std::wstring& wstr)
 {
@@ -216,6 +229,16 @@ bool TActionExt::Execute(TActionClass* pThis, HouseClass* pHouse, ObjectClass* p
 		return TActionExt::BindTeamMemberToTag(pThis, pHouse, pObject, pTrigger, location);
 	case PhobosTriggerAction::BindTechnologyToTag:
 		return TActionExt::BindTechnologyToTag(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::UpdateNextScenario:
+		return TActionExt::UpdateNextScenario(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::UpdateMoney:
+		return TActionExt::UpdateMoney(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::CreateBannerGlobal:
+		return TActionExt::CreateBannerGlobal(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::CreateBannerLocal:
+		return TActionExt::CreateBannerLocal(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::DeleteBanner:
+		return TActionExt::DeleteBanner(pThis, pHouse, pObject, pTrigger, location);
 	default:
 		bHandled = false;
 		return true;
@@ -815,6 +838,25 @@ bool TActionExt::RunSuperWeaponAt(TActionClass* pThis, int X, int Y)
 
 	return true;
 }
+bool TActionExt::UpdateNextScenario(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
+{
+	ScenarioExt::Global()->NextMission = pThis->Text;
+	return true;
+}
+bool TActionExt::UpdateMoney(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
+{
+	auto& var = ScenarioExt::Global()->Variables[0];
+	auto variable = var.find(pThis->Value);
+
+	if (variable != var.end())
+	{
+		HouseClass* foundHouse = HouseClass::Array->GetItem(pThis->Param3);
+		if (!foundHouse)
+			return false;
+		foundHouse->TransactMoney(variable->second.Value);
+	}
+	return true;
+}
 bool TActionExt::WriteMessage(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
 {
 	auto spcialText = pThis->Text;
@@ -828,6 +870,7 @@ bool TActionExt::WriteMessage(TActionClass* pThis, HouseClass* pHouse, ObjectCla
 	if (frames <= 0)
 		frames = 150;
 	wchar_t* pMessage = csfConvert(StringTable::LoadString(csfLabel));
+
 	MessageListClass::Instance->PrintMessage(pMessage, frames, ColorScheme::FindIndex(ColorName), false);
 	delete[] pMessage;
 	return true;
@@ -839,21 +882,12 @@ bool TActionExt::UpdateMaxMessageCount(TActionClass* pThis, HouseClass* pHouse, 
 }
 bool TActionExt::UpdateMessageBuffer(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
 {
-	wchar_t* pMessage = csfConvert(StringTable::LoadString(pThis->Text));
-	int len=0;
-	
-	if (MessageListClass::Instance->MessageBuffers[pThis->Param3][0] != L'\0')
-	{
-		size_t length = max(wcslen(MessageListClass::Instance->MessageBuffers[pThis->Param3]),wcslen(pMessage));
-		len = static_cast<int>(length);
-	}
-	else
-	{
-		return false;
-	}
-	MessageListClass::Instance->MessageBuffers[pThis->Param3][0] = L'\0';
+	wchar_t* pMessage = csfConvert(StringTable::LoadString(pThis->Text));	
+	size_t length = wcslen(pMessage);
+	int len = static_cast<int>(length);
+	std::wmemset(MessageListClass::Instance->MessageBuffers[pThis->Param3], 0, 162);
 	for (int j = 0; j < len; j++)
-		MessageListClass::Instance->MessageBuffers[pThis->Param3][j] = pMessage[j]?pMessage[j]: L'\0';
+		MessageListClass::Instance->MessageBuffers[pThis->Param3][j] = pMessage[j];
 	return true;
 }
 bool TActionExt::ToggleMCVRedeploy(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
@@ -862,16 +896,6 @@ bool TActionExt::ToggleMCVRedeploy(TActionClass* pThis, HouseClass* pHouse, Obje
 	return true;
 }
 
-wchar_t* ConvertWchar(const char* asciiStr)
-{
-	size_t len = strlen(asciiStr) + 1; // 包括null终止符  
-	wchar_t* wideStr = new wchar_t[len];
-	for (size_t i = 0; i < len; ++i)
-	{
-		wideStr[i] = static_cast<wchar_t>(asciiStr[i]);
-	}
-	return wideStr;
-}
 bool TActionExt::BindTeamMemberToTag(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
 {
 	auto spcialText = pThis->Text;
@@ -882,7 +906,6 @@ bool TActionExt::BindTeamMemberToTag(TActionClass* pThis, HouseClass* pHouse, Ob
 	const auto TeamName = result[0];
 	const auto TagName = result[1];
 
-	TeamClass* team;
 	TagClass* tag;
 	for (auto const pTag : *TagClass::Array())
 	{
@@ -942,6 +965,67 @@ bool TActionExt::BindTechnologyToTag(TActionClass* pThis, HouseClass* pHouse, Ob
 			pTechno->AttachTrigger(tag);
 		}
 	}
+	return true;
+}
+
+void CreateOrReplaceBanner(TActionClass* pTAction, bool isGlobal)
+{
+	BannerTypeClass* pBannerType = BannerTypeClass::Array[pTAction->Param3].get();
+	auto& banners = BannerClass::Array;
+
+	const auto it = std::find_if(banners.cbegin(), banners.cend(),
+		[pTAction](const std::unique_ptr<BannerClass>& pBanner)
+		{
+			return pBanner->ID == pTAction->Value;
+		});
+
+	if (it != banners.cend())
+	{
+		const auto& pBanner = *it;
+		pBanner->Type = pBannerType;
+		pBanner->Position = CoordStruct(pTAction->Param4, pTAction->Param5, 0);
+		pBanner->Variable = pTAction->Param6;
+		pBanner->IsGlobalVariable = isGlobal;
+	}
+	else
+	{
+		BannerClass::Array.emplace_back
+		(
+			std::make_unique<BannerClass>
+			(
+				pBannerType,
+				pTAction->Value,
+				CoordStruct(pTAction->Param4, pTAction->Param5, 0),
+				pTAction->Param6,
+				isGlobal
+				)
+		);
+	}
+}
+
+bool TActionExt::CreateBannerGlobal(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
+{
+	CreateOrReplaceBanner(pThis, true);
+	return true;
+}
+
+bool TActionExt::CreateBannerLocal(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
+{
+	CreateOrReplaceBanner(pThis, false);
+	return true;
+}
+
+bool TActionExt::DeleteBanner(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
+{
+	const auto it = std::find_if(BannerClass::Array.cbegin(), BannerClass::Array.cend(),
+		[pThis](const std::unique_ptr<BannerClass>& pBanner)
+		{
+			return pBanner->ID == pThis->Value;
+		});
+
+	if (it != BannerClass::Array.cend())
+		BannerClass::Array.erase(it);
+
 	return true;
 }
 // =============================

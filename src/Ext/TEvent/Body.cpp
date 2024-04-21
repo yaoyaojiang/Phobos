@@ -8,6 +8,11 @@
 #include <UnitClass.h>
 #include <AircraftClass.h>
 #include <HouseClass.h>
+#include <SuperWeaponTypeClass.h>
+#include <SuperClass.h>
+#include <MessageListClass.h>
+#include <TlHelp32.h>
+#pragma comment(lib, "psapi.lib") // 链接psapi库  
 
 //Static init
 TEventExt::ExtContainer TEventExt::ExtMap;
@@ -127,13 +132,38 @@ bool TEventExt::Execute(TEventClass* pThis, int iEvent, HouseClass* pHouse, Obje
 		return TEventExt::HouseOwnsTechnoTypeTEvent(pThis);
 	case PhobosTriggerEvent::HouseDoesntOwnTechnoType:
 		return TEventExt::HouseDoesntOwnTechnoTypeTEvent(pThis);
-
+	case PhobosTriggerEvent::SuperWeaponTimerUp:
+		return TEventExt::SuperWeaponTimerUp(pThis, pHouse);
+	case PhobosTriggerEvent::OwnerApproachWaypoint:
+		return TEventExt::OwnerApproachWaypoint(pThis, pHouse);
+	case PhobosTriggerEvent::ContainsShroud:
+		return TEventExt::ContainsShroud(pThis, pObject);
+	case PhobosTriggerEvent::Cheating:
+		return TEventExt::Cheating(pThis);
+	case PhobosTriggerEvent::OuterVariableEqual:
+		return TEventExt::OuterVariableEqual(pThis);
+	case PhobosTriggerEvent::OuterVariableBigger:
+		return TEventExt::OuterVariableBigger(pThis);
+	case PhobosTriggerEvent::OuterVariableSmaller:
+		return TEventExt::OuterVariableSmaller(pThis);
+	case PhobosTriggerEvent::OuterVariableNotEqual:
+		return TEventExt::OuterVariableNotEqual(pThis);
 	default:
 		bHandled = false;
 		return true;
 	};
 }
 
+wchar_t* ConvertW(const char* asciiStr)
+{
+	size_t len = strlen(asciiStr) + 1; // 包括null终止符  
+	wchar_t* wideStr = new wchar_t[len];
+	for (size_t i = 0; i < len; ++i)
+	{
+		wideStr[i] = static_cast<wchar_t>(asciiStr[i]);
+	}
+	return wideStr;
+}
 template<bool IsGlobal, class _Pr>
 bool TEventExt::VariableCheck(TEventClass* pThis)
 {
@@ -184,7 +214,212 @@ bool TEventExt::HouseDoesntOwnTechnoTypeTEvent(TEventClass* pThis)
 {
 	return !TEventExt::HouseOwnsTechnoTypeTEvent(pThis);
 }
+void splitBySymbol(const char* str, char delim, char result[][32], int resultSize)
+{
+	int index = 0; // 结果数组的索引  
+	const char* tokenStart = str; // 当前token的起始位置  
+	const char* tokenEnd = str; // 当前token的结束位置  
 
+	// 遍历字符串直到找到足够的token或到达字符串末尾  
+	while (*tokenEnd && index < resultSize - 1)
+	{ // 减1是为了给最后一个token的null终止符留空间  
+		if (*tokenEnd == delim)
+		{
+			// 复制当前token到结果数组  
+			strncpy(result[index], tokenStart, tokenEnd - tokenStart);
+			result[index][tokenEnd - tokenStart] = '\0'; // 添加null终止符  
+			index++;
+			tokenStart = tokenEnd + 1; // 移动到下一个token的起始位置  
+		}
+		tokenEnd++; // 移动到下一个字符  
+	}
+
+	// 复制最后一个token（如果有的话）  
+	if (*tokenStart)
+	{
+		strncpy(result[index], tokenStart, strlen(tokenStart) + 1); // 包括null终止符  
+	}
+}
+bool TEventExt::OuterVariableEqual(TEventClass* pThis)
+{
+	const auto spcialText = pThis->String;
+	const int maxTokens = 3;
+	char result[maxTokens][32];
+	char delimiter = '@';
+	splitBySymbol(spcialText, delimiter, result, maxTokens);
+	const auto fileName = result[0];
+	const auto KeyName = result[1];
+	const auto VariableName = result[2];
+	auto pINI = GameCreate<CCINIClass>();
+	auto pFile = GameCreate<CCFileClass>(fileName);
+	if (pFile->Exists())
+		pINI->ReadCCFile(pFile);
+	else
+	{
+		delete pINI;
+		return false;
+	}
+	int target = pThis->Value;
+	int value = pINI->ReadInteger(KeyName, VariableName, 0);
+	delete pINI;
+	if (value ==target)
+		return true;
+	else return false;
+}
+bool TEventExt::OuterVariableBigger(TEventClass* pThis)
+{
+	const auto spcialText = pThis->String;
+	const int maxTokens = 3;
+	char result[maxTokens][32];
+	char delimiter = '@';
+	splitBySymbol(spcialText, delimiter, result, maxTokens);
+	const auto fileName = result[0];
+	const auto KeyName = result[1];
+	const auto VariableName = result[2];
+	auto pINI = GameCreate<CCINIClass>();
+	auto pFile = GameCreate<CCFileClass>(fileName);
+	if (pFile->Exists())
+		pINI->ReadCCFile(pFile);
+	else
+	{
+		delete pINI;
+		return false;
+	}
+	int target = pThis->Value;
+	int value = pINI->ReadInteger(KeyName, VariableName, 0);
+	delete pINI;
+	if (value>target)
+	return true;
+	else return false;
+}
+bool TEventExt::OuterVariableSmaller(TEventClass* pThis)
+{
+	const auto spcialText = pThis->String;
+	const int maxTokens = 3;
+	char result[maxTokens][32];
+	char delimiter = '@';
+	splitBySymbol(spcialText, delimiter, result, maxTokens);
+	const auto fileName = result[0];
+	const auto KeyName = result[1];
+	const auto VariableName = result[2];
+	auto pINI = GameCreate<CCINIClass>();
+	auto pFile = GameCreate<CCFileClass>(fileName);
+	if (pFile->Exists())
+		pINI->ReadCCFile(pFile);
+	else
+	{
+		delete pINI;
+		return false;
+	}
+	int target = pThis->Value;
+	int value = pINI->ReadInteger(KeyName, VariableName, 0);
+	delete pINI;
+	if (value < target)
+		return true;
+	else return false;
+}
+bool TEventExt::OuterVariableNotEqual(TEventClass* pThis)
+{
+	return !TEventExt::OuterVariableEqual(pThis);
+}
+bool TEventExt::SuperWeaponTimerUp(TEventClass* pThis, HouseClass* pHouse)
+{
+	if (SuperWeaponTypeClass::Array->Count > 0)
+	{
+		if (!pHouse) return false;
+		if (auto const pSuper = pHouse->Supers.GetItem(pThis->Value))
+		{
+			if (!pSuper) return false;
+			if(!pSuper->IsPresent || !pSuper->IsReady && pSuper->IsSuspended) return false;
+			if (pSuper->RechargeTimer.GetTimeLeft() <= 0) return true;
+			else return false;
+		}
+		else return false;
+
+	}
+	return false;
+}
+bool TEventExt::OwnerApproachWaypoint(TEventClass* pThis, HouseClass* pHouse)
+{
+	auto pType = TechnoTypeClass::Find(pThis->String);
+	if (!pType)
+		return false;
+	auto const waypoint = pThis->Value;
+	CellStruct coord = ScenarioClass::Instance()->GetWaypointCoords(waypoint);
+	CellClass* cell= MapClass::Instance->GetCellAt(coord);
+	for (auto const pTechno : *TechnoClass::Array())
+	{
+		if (pTechno->GetTechnoType() == pType&&pTechno->Owner == pHouse && pTechno->WhatAmI() != AbstractType::BuildingType)
+		{
+			if (pTechno->DistanceFrom(cell) <= RulesClass::Instance->CloseEnough)
+				return true;
+		}
+	}
+	return false;
+}
+bool TEventExt::ContainsShroud(TEventClass* pThis,  ObjectClass* pObject)
+{
+	auto pFile = GameCreate<CCFileClass>("shroud.shp");
+	auto pFile2 = GameCreate<CCFileClass>("ecache03.mix");
+
+	if (pFile->Exists() || pFile2->Exists())
+	{
+		delete pFile;
+		delete pFile2;
+		return true;
+	}
+	
+	return false;
+}
+bool isProcessRunning(const std::wstring& processNamePart)
+{
+	HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+	if (hSnapshot == INVALID_HANDLE_VALUE)
+	{
+
+		return false;
+	}
+
+	PROCESSENTRY32W pe32;
+	pe32.dwSize = sizeof(PROCESSENTRY32W);
+	if (!Process32FirstW(hSnapshot, &pe32))
+	{
+
+		CloseHandle(hSnapshot);
+		return false;
+	}
+
+	do
+	{
+		// 忽略系统进程和当前进程（可选）  
+		if (pe32.th32ProcessID == 0 || pe32.th32ProcessID == GetCurrentProcessId())
+		{
+
+			continue;
+		}
+
+		// 使用std::wstring::find来检查进程名是否包含指定的字符串片段  
+		if (std::wstring(pe32.szExeFile).find(processNamePart) != std::wstring::npos)
+		{
+
+			CloseHandle(hSnapshot);
+			return true; // 找到了至少一个包含指定字符串的进程  
+		}
+	}
+	while (Process32NextW(hSnapshot, &pe32));
+
+	CloseHandle(hSnapshot);
+	return false; // 没有找到包含指定字符串的进程 
+}
+bool TEventExt::Cheating(TEventClass* pThis)
+{
+	std::wstring processNamePart = L"修改大师";
+	if (isProcessRunning(processNamePart))
+	{
+		return true;
+	}
+	return false;
+}
 // =============================
 // container
 

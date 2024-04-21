@@ -28,6 +28,10 @@ bool Phobos::UI::ShowPowerDelta = false;
 double Phobos::UI::PowerDelta_ConditionYellow = 0.75;
 double Phobos::UI::PowerDelta_ConditionRed = 1.0;
 bool Phobos::UI::CenterPauseMenuBackground = false;
+bool Phobos::UI::ShowCostLabel = true;
+bool Phobos::UI::ShowTimeLabel = true;
+bool Phobos::UI::ShowPowerLabel = true;
+bool Phobos::UI::ShowBlackoutLabel = true;
 
 bool Phobos::Config::ToolTipDescriptions = true;
 bool Phobos::Config::ToolTipBlur = false;
@@ -85,6 +89,18 @@ DEFINE_HOOK(0x5FACDF, OptionsClass_LoadSettings_LoadPhobosSettings, 0x5)
 
 		pINI_UIMD->ReadString(TOOLTIPS_SECTION, "TimeLabel", NONE_STR, Phobos::readBuffer);
 		Phobos::UI::TimeLabel = GeneralUtils::LoadStringOrDefault(Phobos::readBuffer, L"\u231a"); // ⌚
+
+		Phobos::UI::ShowCostLabel =
+			pINI_UIMD->ReadBool(TOOLTIPS_SECTION, "ShowCostLabel", true);
+
+		Phobos::UI::ShowPowerLabel =
+			pINI_UIMD->ReadBool(TOOLTIPS_SECTION, "ShowPowerLabel", true);
+
+		Phobos::UI::ShowBlackoutLabel =
+			pINI_UIMD->ReadBool(TOOLTIPS_SECTION, "ShowBlackoutLabel", true);
+
+		Phobos::UI::ShowTimeLabel =
+			pINI_UIMD->ReadBool(TOOLTIPS_SECTION, "ShowTimeLabel", true);
 	}
 
 	// Sidebar

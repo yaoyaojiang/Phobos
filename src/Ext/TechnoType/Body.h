@@ -184,6 +184,10 @@ public:
 		Nullable<Leptons> SpawnDistanceFromTarget;
 		Nullable<int> SpawnHeight;
 		Nullable<int> LandingDir;
+		Nullable<bool> ShowPrice;
+		Nullable<bool> ShowBuildTime;
+		Nullable<bool> ShowPower;
+		Nullable<bool> ShowBlackout;
 
 		struct LaserTrailDataEntry
 		{
@@ -364,6 +368,10 @@ public:
 			, SpawnHeight {}
 			, LandingDir {}
 			, DroppodType {}
+			, ShowPrice { true }
+			, ShowBuildTime { true }
+			, ShowPower { true }
+			, ShowBlackout { true }
 		{ }
 
 		virtual ~ExtData() = default;

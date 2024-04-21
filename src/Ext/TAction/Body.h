@@ -2,6 +2,7 @@
 
 #include <Utilities/Container.h>
 #include <Utilities/Template.h>
+#include <ScriptClass.h>
 
 #include <Helpers/Template.h>
 
@@ -31,9 +32,21 @@ enum class PhobosTriggerAction : unsigned int
 	BindTechnologyToTag=709,
 	UpdateMoney = 710,
 	UpdateNextScenario = 711,
-	CreateBannerGlobal = 712, // any banner w/ global variable
-	CreateBannerLocal = 713, // any banner w/ local variable
-	DeleteBanner = 714
+	CreateBannerLocal = 712, // any banner w/ global variable
+	DeleteBanner = 713, // any banner w/ local variable
+	DisableTriggerrWithMark = 714,
+	RunSuperWeaponAtRandomUnit = 715,
+	EnableTriggerWithMark=716,
+	EnableTriggerWithMarkRandomly=717,
+	CreateTeam=718,
+	CreateTeamWithGroup=719,
+	CreateTeamWithGroupRandomly = 720,
+	ClearFile=721,
+	OutputInteger = 722,
+	OutputIntegerRandomly = 723,
+	OutputIntegerRandomlyTargets = 724,
+	OutputDouble = 725,
+	OutputDoubleWithVar = 726,
 };
 
 class TActionExt
@@ -90,9 +103,21 @@ public:
 	ACTION_FUNC(BindTechnologyToTag);
 	ACTION_FUNC(UpdateMoney);
 	ACTION_FUNC(UpdateNextScenario);
-	ACTION_FUNC(CreateBannerGlobal);
+	ACTION_FUNC(DisableTriggerrWithMark);
 	ACTION_FUNC(CreateBannerLocal);
 	ACTION_FUNC(DeleteBanner);
+	ACTION_FUNC(RunSuperWeaponAtRandomUnit);
+	ACTION_FUNC(EnableTriggerWithMark);
+	ACTION_FUNC(EnableTriggerWithMarkRandomly);
+	ACTION_FUNC(CreateTeam);
+	ACTION_FUNC(CreateTeamWithGroup);
+	ACTION_FUNC(CreateTeamWithGroupRandomly);
+	ACTION_FUNC(ClearFile);
+	ACTION_FUNC(OutputInteger);
+	ACTION_FUNC(OutputIntegerRandomly);
+	ACTION_FUNC(OutputIntegerRandomlyTargets);
+	ACTION_FUNC(OutputDouble);
+	ACTION_FUNC(OutputDoubleWithVar);
 	static bool RunSuperWeaponAt(TActionClass* pThis, int X, int Y);
 
 #undef ACTION_FUNC

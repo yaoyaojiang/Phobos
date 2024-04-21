@@ -5,6 +5,7 @@
 #include <New/Type/BannerTypeClass.h>
 
 #include <Utilities/SavegameDef.h>
+#include <MessageListClass.h>
 
 std::vector<std::unique_ptr<BannerClass>> BannerClass::Array;
 
@@ -47,7 +48,39 @@ void BannerClass::Render()
 		break;
 	}
 }
+std::wstring replaceSubstringWithVar(const std::wstring& wstr, const std::wstring& wss, int replacementValue)
+{
+	std::wstring result = wstr; // 初始化为原始宽字符字符串  
+	size_t pos = result.find(wss); // 查找子字符串的位置  
+	if (pos != std::wstring::npos)
+	{
+		// 创建整数的字符串表示  
+		std::wstring replacementStr = std::to_wstring(replacementValue);
+		// 替换子字符串  
+		result.replace(pos, wss.length(), replacementStr);
+	}
+	return result;
+}
 
+wchar_t* csfConvertA(const wchar_t* wstr)
+{
+	std::wstring inputStr(wstr);
+	std::map<int, ExtendedVariable> variables = ScenarioExt::Global()->Variables[0];
+	int i = 0;
+	for (const auto& variable : variables)
+	{
+		std::wstring pattern = L"%var" + std::to_wstring(i) + L"%";
+		inputStr = replaceSubstringWithVar(inputStr, pattern, variable.second.Value);
+		i++;
+	}
+
+	// 转换std::wstring为wchar_t*  
+	size_t size = inputStr.size() + 1; // +1 for the null-terminator  
+	wchar_t* result = new wchar_t[size];
+	std::wcscpy(result, inputStr.c_str());
+
+	return result;
+}
 void BannerClass::RenderPCX(int x, int y)
 {
 	int xsize = 0;
@@ -110,19 +143,53 @@ void BannerClass::RenderSHP(int x, int y)
 	}
 }
 
+
 void BannerClass::RenderCSF(int x, int y)
 {
 	RectangleStruct rect;
 	DSurface::Composite->GetRect(&rect);
-	Point2D pos(x, y);
 
-	std::wstring text = this->Type->CSF.Get().Text;
+	auto textc = this->Type->CSF.Get().Text;
+	if (this->Type->CsfConvert)
+	{
+		textc = csfConvertA(textc);
+	}
 
-	const auto& variables = ScenarioExt::Global()->Variables[this->IsGlobalVariable != 0];
-	const auto& it = variables.find(this->Variable);
+	auto wanted = Drawing::GetTextDimensions(textc, { 0,0 }, 0, 2, 0);
 
-	if (it != variables.end())
-		text += std::to_wstring(it->second.Value);
+	/*RectangleStruct rectangle = {右上
+		DSurface::Composite->GetWidth()-wanted.Width/2,
+		0 ,
+		wanted.Width + 10,
+		wanted.Height + 10
+	}; */
+	RectangleStruct rectangle = {
+		 wanted.Width / 2,
+		DSurface::Composite->GetHeight() - wanted.Height * 3 ,
+		wanted.Width + 10,
+		wanted.Height + 10
+	};
+	int t, p;
+	if (y > 0)
+		t = y;
+	else
+		t = rectangle.Y;
+	if (x > 0)
+		p = x;
+	else
+		p = rectangle.X;
+	//Point2D location { rectangle.X + 5,5 };
+	Point2D pos(p, t);
+
+	std::wstring text(textc);
+	if (this->Type->VariableFormat!=BannerNumberType::None)
+	{
+		const auto& variables = ScenarioExt::Global()->Variables[this->IsGlobalVariable != 0];
+    	const auto& it = variables.find(this->Variable);
+
+	    if (it != variables.end())
+	    	text += std::to_wstring(it->second.Value);
+    }
 
 	TextPrintType textFlags = TextPrintType::UseGradPal
 		| TextPrintType::Center
@@ -140,6 +207,7 @@ void BannerClass::RenderCSF(int x, int y)
 		0,
 		textFlags
 	);
+	delete textc;
 }
 
 void BannerClass::RenderVariable(int x, int y)

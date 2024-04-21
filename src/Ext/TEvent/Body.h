@@ -52,7 +52,14 @@ enum PhobosTriggerEvent
 	ShieldBroken = 600,
 	HouseOwnsTechnoType = 601,
 	HouseDoesntOwnTechnoType = 602,
-
+	SuperWeaponTimerUp=603,
+	OwnerApproachWaypoint=604,
+	ContainsShroud = 605,
+	Cheating = 606,
+	OuterVariableEqual=607,
+	OuterVariableBigger = 608,
+	OuterVariableSmaller = 609,
+	OuterVariableNotEqual = 610,
 	_DummyMaximum,
 };
 
@@ -91,7 +98,14 @@ public:
 
 	static bool HouseOwnsTechnoTypeTEvent(TEventClass* pThis);
 	static bool HouseDoesntOwnTechnoTypeTEvent(TEventClass* pThis);
-
+	static bool SuperWeaponTimerUp(TEventClass* pThis, HouseClass* pHouse);
+	static bool OwnerApproachWaypoint(TEventClass* pThis, HouseClass* pHouse);
+	static bool ContainsShroud(TEventClass* pThis, ObjectClass* pObject);
+	static bool Cheating(TEventClass* pThis);
+	static bool OuterVariableEqual(TEventClass* pThis);
+	static bool OuterVariableBigger(TEventClass* pThis);
+	static bool OuterVariableSmaller(TEventClass* pThis);
+	static bool OuterVariableNotEqual(TEventClass* pThis);
 	class ExtContainer final : public Container<TEventExt>
 	{
 	public:

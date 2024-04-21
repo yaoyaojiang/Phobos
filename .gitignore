@@ -26,3 +26,5 @@ build
 cmake-*
 out
 .idea
+/GIT地址.txt
+/Phobos.zip

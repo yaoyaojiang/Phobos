@@ -43,6 +43,7 @@ void BannerTypeClass::LoadFromINI(CCINIClass* pINI)
 	this->CSF_Background.Read(exINI, section, "Content.CSF.DrawBackground");
 	this->VariableFormat.Read(exINI, section, "Content.VariableFormat");
 	this->VariableFormat_Label.Read(exINI, section, "Content.VariableFormat.Label");
+	this->CsfConvert.Read(exINI, section, "Content.CSF.VariableConvert");
 
 	DetermineType();
 }
@@ -60,6 +61,7 @@ void BannerTypeClass::Serialize(T& stm)
 		.Process(this->VariableFormat)
 		.Process(this->VariableFormat_Label)
 		.Process(this->BannerType)
+		.Process(this->CsfConvert)
 		;
 }
 

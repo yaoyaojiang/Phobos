@@ -123,17 +123,21 @@ void PhobosToolTip::HelpText(TechnoTypeClass* pType)
 	// int nHour = tickTimeToSeconds(nBuildTime) / 60 / 60;
 
 	int cost = pType->GetActualCost(HouseClass::CurrentPlayer);
-
 	std::wostringstream oss;
-	oss << pType->UIName << L"\n"
-		<< (cost < 0 ? L"+" : L"")
-		<< Phobos::UI::CostLabel << std::abs(cost) << L" "
-		<< Phobos::UI::TimeLabel
-		// << std::setw(2) << std::setfill(L'0') << nHour << L":"
-		<< std::setw(2) << std::setfill(L'0') << nMin << L":"
-		<< std::setw(2) << std::setfill(L'0') << nSec;
 
-	if (auto const nPower = this->GetPower(pType))
+	    oss << pType->UIName;
+		if ((pData->ShowPrice && Phobos::UI::ShowCostLabel)|| (pData->ShowBuildTime && Phobos::UI::ShowTimeLabel)||(pData->ShowPower && Phobos::UI::ShowPowerLabel))
+	    oss<< L"\n"	<< (cost < 0 ? L"+" : L"");
+		if (pData->ShowPrice && Phobos::UI::ShowCostLabel)
+			oss << Phobos::UI::CostLabel << std::abs(cost) << L" ";
+		if (pData->ShowBuildTime && Phobos::UI::ShowTimeLabel)
+		{
+			oss << Phobos::UI::TimeLabel
+				// << std::setw(2) << std::setfill(L'0') << nHour << L":"
+				<< std::setw(2) << std::setfill(L'0') << nMin << L":"
+				<< std::setw(2) << std::setfill(L'0') << nSec;
+		}
+	if (auto const nPower = this->GetPower(pType)&& pData->ShowPower && Phobos::UI::ShowPowerLabel)
 	{
 		oss << L" " << Phobos::UI::PowerLabel;
 		if (nPower > 0)

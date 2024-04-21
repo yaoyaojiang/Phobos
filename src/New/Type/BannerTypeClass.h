@@ -26,6 +26,8 @@ public:
 
 	BannerType BannerType;
 
+	Valueable<bool> CsfConvert;
+
 	BannerTypeClass(const char* pTitle = NONE_STR);
 	~BannerTypeClass() override = default;
 

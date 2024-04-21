@@ -15,6 +15,9 @@
 #include <TriggerTypeClass.h>
 #include <New/Type/BannerTypeClass.h>
 #include <New/Entity/BannerClass.h>
+#include <JumpjetLocomotionClass.h>
+#include <stdexcept>
+#include <fstream>
 
 //Static init
 TActionExt::ExtContainer TActionExt::ExtMap;
@@ -26,6 +29,23 @@ template <typename T>
 void TActionExt::ExtData::Serialize(T& Stm)
 {
 	//Stm;
+}
+bool Contains(std::string a,std::string b)
+{
+
+	// 使用find成员函数来查找a在b中的位置  
+	size_t pos = b.find(a);
+
+	// 如果找到，pos会是a在b中的起始位置；如果没有找到，pos会是std::string::npos  
+	if (pos != std::string::npos)
+	{
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+
 }
 size_t max(size_t a, size_t b)
 {
@@ -233,12 +253,36 @@ bool TActionExt::Execute(TActionClass* pThis, HouseClass* pHouse, ObjectClass* p
 		return TActionExt::UpdateNextScenario(pThis, pHouse, pObject, pTrigger, location);
 	case PhobosTriggerAction::UpdateMoney:
 		return TActionExt::UpdateMoney(pThis, pHouse, pObject, pTrigger, location);
-	case PhobosTriggerAction::CreateBannerGlobal:
-		return TActionExt::CreateBannerGlobal(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::DisableTriggerrWithMark:
+		return TActionExt::DisableTriggerrWithMark(pThis, pHouse, pObject, pTrigger, location);
 	case PhobosTriggerAction::CreateBannerLocal:
 		return TActionExt::CreateBannerLocal(pThis, pHouse, pObject, pTrigger, location);
 	case PhobosTriggerAction::DeleteBanner:
 		return TActionExt::DeleteBanner(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::RunSuperWeaponAtRandomUnit:
+		return TActionExt::RunSuperWeaponAtRandomUnit(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::EnableTriggerWithMark:
+		return TActionExt::EnableTriggerWithMark(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::EnableTriggerWithMarkRandomly:
+		return TActionExt::EnableTriggerWithMarkRandomly(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::CreateTeam:
+		return TActionExt::CreateTeam(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::CreateTeamWithGroup:
+		return TActionExt::CreateTeamWithGroup(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::CreateTeamWithGroupRandomly:
+		return TActionExt::CreateTeamWithGroupRandomly(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::ClearFile:
+		return TActionExt::ClearFile(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::OutputInteger:
+		return TActionExt::OutputInteger(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::OutputIntegerRandomly:
+		return TActionExt::OutputIntegerRandomly(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::OutputIntegerRandomlyTargets:
+		return TActionExt::OutputIntegerRandomlyTargets(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::OutputDoubleWithVar:
+		return TActionExt::OutputDoubleWithVar(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::OutputDouble:
+		return TActionExt::OutputDouble(pThis, pHouse, pObject, pTrigger, location);
 	default:
 		bHandled = false;
 		return true;
@@ -406,7 +450,144 @@ bool TActionExt::OutputVariablesToFile(TActionClass* pThis, HouseClass* pHouse, 
 
 	return true;
 }
+bool TActionExt::OutputInteger(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
+{
+	auto& variables = ScenarioExt::Global()->Variables[0];
+	const auto spcialText = pThis->Text;
+	const int maxTokens = 3;
+	char result[maxTokens][32];
+	char delimiter = '@';
+	splitByAtSymbol(spcialText, delimiter, result, maxTokens);
+	const auto fileName = result[0];
+	const auto Section = result[1];
+	const auto KeyName = result[2];
+	auto pINI = GameCreate<CCINIClass>();
+	auto pFile = GameCreate<CCFileClass>(fileName);
+	
+	if (pFile->Exists())
+		pINI->ReadCCFile(pFile);
+	else
+		pFile->CreateFileA();
 
+	pINI->WriteInteger(Section, KeyName, pThis->Param3, false);
+	//pINI->WriteString(ScenarioClass::Instance()->FileName, variable->second.Name, variable->second.Name);
+	pINI->WriteCCFile(pFile);
+	pFile->Close();
+
+	return true;
+}
+bool TActionExt::OutputIntegerRandomly(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
+{
+	auto& variables = ScenarioExt::Global()->Variables[0];
+	const auto spcialText = pThis->Text;
+	const int maxTokens = 3;
+	char result[maxTokens][32];
+	char delimiter = '@';
+	splitByAtSymbol(spcialText, delimiter, result, maxTokens);
+	const auto fileName = result[0];
+	const auto Section = result[1];
+	const auto KeyName = result[2];
+	auto pINI = GameCreate<CCINIClass>();
+	auto pFile = GameCreate<CCFileClass>(fileName);
+
+	if (pFile->Exists())
+		pINI->ReadCCFile(pFile);
+	else
+		pFile->CreateFileA();
+	int output=ScenarioClass::Instance->Random.RandomRanged(pThis->Param3, pThis->Param4);
+	pINI->WriteInteger(Section, KeyName, output, false);
+	//pINI->WriteString(ScenarioClass::Instance()->FileName, variable->second.Name, variable->second.Name);
+	pINI->WriteCCFile(pFile);
+	pFile->Close();
+
+	return true;
+}
+bool TActionExt::OutputIntegerRandomlyTargets(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
+{
+	auto& variables = ScenarioExt::Global()->Variables[0];
+	const auto spcialText = pThis->Text;
+	const int maxTokens = 2;
+	char result[maxTokens][32];
+	char delimiter = '@';
+	splitByAtSymbol(spcialText, delimiter, result, maxTokens);
+	const auto fileName = result[0];
+	const auto KeyName = result[1];
+	auto pINI = GameCreate<CCINIClass>();
+	auto pFile = GameCreate<CCFileClass>(fileName);
+
+	if (RulesExt::Global()->AITargetTypesLists.size() > 0
+		&& RulesExt::Global()->AITargetTypesLists[pThis->Param5].size() > 0)
+	{
+		if (pFile->Exists())
+			pINI->ReadCCFile(pFile);
+		else
+			pFile->CreateFileA();
+		for (auto item : RulesExt::Global()->AITargetTypesLists[pThis->Param5])
+		{
+			int output = ScenarioClass::Instance->Random.RandomRanged(pThis->Param3, pThis->Param4);
+			pINI->WriteInteger(item->ID, KeyName, output, false);
+		}
+	}
+	else return true;
+	//pINI->WriteString(ScenarioClass::Instance()->FileName, variable->second.Name, variable->second.Name);
+	pINI->WriteCCFile(pFile);
+	pFile->Close();
+
+	return true;
+}
+bool TActionExt::OutputDouble(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
+{
+	const auto spcialText = pThis->Text;
+	const int maxTokens = 3;
+	char result[maxTokens][32];
+	char delimiter = '@';
+	splitByAtSymbol(spcialText, delimiter, result, maxTokens);
+	const auto fileName = result[0];
+	const auto Section = result[1];
+	const auto KeyName = result[2];
+	auto pINI = GameCreate<CCINIClass>();
+	auto pFile = GameCreate<CCFileClass>(fileName);
+
+	if (pFile->Exists())
+		pINI->ReadCCFile(pFile);
+	else
+		pFile->CreateFileA();
+	double value = std::round(static_cast<double>(pThis->Param3) / pThis->Param4 * 1000.0) / 1000.0;
+	pINI->WriteDouble(Section, KeyName, value);
+	//pINI->WriteString(ScenarioClass::Instance()->FileName, variable->second.Name, variable->second.Name);
+	pINI->WriteCCFile(pFile);
+	pFile->Close();
+
+	return true;
+}
+bool TActionExt::OutputDoubleWithVar(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
+{
+	auto& variables = ScenarioExt::Global()->Variables[0];
+	const auto spcialText = pThis->Text;
+	const int maxTokens = 3;
+	char result[maxTokens][32];
+	char delimiter = '@';
+	splitByAtSymbol(spcialText, delimiter, result, maxTokens);
+	const auto fileName = result[0];
+	const auto Section = result[1];
+	const auto KeyName = result[2];
+	auto pINI = GameCreate<CCINIClass>();
+	auto pFile = GameCreate<CCFileClass>(fileName);
+
+	if (pFile->Exists())
+		pINI->ReadCCFile(pFile);
+	else
+		pFile->CreateFileA();
+	int a = variables.find(pThis->Param3)->second.Value;
+	int b= variables.find(pThis->Param4)->second.Value;
+	double value = std::round(static_cast<double>(a) / b * 1000.0) / 1000.0;
+	pINI->WriteDouble(Section, KeyName, value);
+	//pINI->WriteString(ScenarioClass::Instance()->FileName, variable->second.Name, variable->second.Name);
+	pINI->WriteCCFile(pFile);
+	pFile->Close();
+
+	return true;
+}
 bool TActionExt::ReadVariablesFromFile(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
 {
 	const auto spcialText = pThis->Text;
@@ -426,32 +607,19 @@ bool TActionExt::ReadVariablesFromFile(TActionClass* pThis, HouseClass* pHouse, 
 		delete pINI;
 		return false;
 	}
-	int nCount = pINI->GetKeyCount(KeyName);
-	for (int i = 0; i < nCount; ++i)
+	int value = pINI->ReadInteger(KeyName, VariableName, 0);
+	auto& variables = ScenarioExt::Global()->Variables[0];
+	int i = 0;
+	for (i = 0; i < variables.size(); i++)
 	{
-		auto pKey = pINI->GetKeyName(KeyName, i);
-		if (strcmp(VariableName, pKey) == 0)
+		auto variable = variables.find(i);
+		if (strcmp(variable->second.Name, VariableName) == 0)
 		{
-
-			auto& var = ScenarioExt::Global()->Variables[0][i];
-			pINI->ReadString(KeyName, pKey, pKey, Phobos::readBuffer);
-			strcpy_s(var.Name, VariableName);
-			char* endptr;
-			long int value = std::strtol(Phobos::readBuffer, &endptr, 10);
-			// 检查转换是否成功 
-			if (endptr == Phobos::readBuffer)
-			{
-				// 没有转换发生，readBuffer可能不包含数字  
-				// 进行错误处理，例如设置默认值或记录错误  
-				var.Value = 0; // 或其他默认值  
-			}
-			else
-			{
-				// 转换成功，将值赋给var.Value  
-				var.Value = static_cast<int>(value);
-			}
+			variable->second.Value = value;
 			TagClass::NotifyLocalChanged(i);
+			return true;
 		}
+
 	}
 	return true;
 }
@@ -668,7 +836,47 @@ bool TActionExt::BinaryOperation(TActionClass* pThis, HouseClass* pHouse, Object
 	}
 	return true;
 }
+//AI目标类别（需定义AITargetTypes）、超武ID、使用所属方、目标所属方
+bool TActionExt::RunSuperWeaponAtRandomUnit(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
+{
+	if (!pThis)
+		return true;
+	std::vector<CellStruct> c;
+	int j = 0;
+	if (RulesExt::Global()->AITargetTypesLists.size() > 0
+		&& RulesExt::Global()->AITargetTypesLists[pThis->Value].size() > 0)
+	{
+		HouseClass* targetHouse = HouseClass::Array->GetItem(pThis->Param5);
+		for (auto const pTechno : *TechnoClass::Array())
+		{
+			if (pTechno->Owner == targetHouse)
+			{
+				for (auto item : RulesExt::Global()->AITargetTypesLists[pThis->Value])
+				{
+					if (pTechno->GetTechnoType() == item&&!pTechno->InLimbo&&pTechno->IsOnMap&&pTechno->IsAlive)
+					{
+						if (pThis->Param6 == 0)
+						{
+							CellStruct cell = { pTechno->GetMapCoords().X ,pTechno->GetMapCoords().Y };
+							c.push_back(cell);
+							j++;
+						}
+						else
+						{
+							TActionExt::RunSuperWeaponAt(pThis, pTechno->GetMapCoords().X, pTechno->GetMapCoords().Y);
+							return true;
+						}
 
+					}
+				}
+			}
+		}
+	}
+	if (j == 0) return true;
+	int i = ScenarioClass::Instance->Random.RandomRanged(0, static_cast<int>(c.size()));
+	TActionExt::RunSuperWeaponAt(pThis, c[i].X, c[i].Y);
+	return true;
+}
 bool TActionExt::RunSuperWeaponAtLocation(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
 {
 	if (!pThis)
@@ -972,7 +1180,11 @@ void CreateOrReplaceBanner(TActionClass* pTAction, bool isGlobal)
 {
 	BannerTypeClass* pBannerType = BannerTypeClass::Array[pTAction->Param3].get();
 	auto& banners = BannerClass::Array;
-
+	if (!pBannerType)
+	{
+		CRT::swprintf(Phobos::wideBuffer, L"%s", "BannerType not found");
+		MessageListClass::Instance->PrintMessage(Phobos::wideBuffer);
+	}
 	const auto it = std::find_if(banners.cbegin(), banners.cend(),
 		[pTAction](const std::unique_ptr<BannerClass>& pBanner)
 		{
@@ -999,15 +1211,10 @@ void CreateOrReplaceBanner(TActionClass* pTAction, bool isGlobal)
 				pTAction->Param6,
 				isGlobal
 				)
-		);
+		); 
 	}
 }
 
-bool TActionExt::CreateBannerGlobal(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
-{
-	CreateOrReplaceBanner(pThis, true);
-	return true;
-}
 
 bool TActionExt::CreateBannerLocal(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
 {
@@ -1026,6 +1233,166 @@ bool TActionExt::DeleteBanner(TActionClass* pThis, HouseClass* pHouse, ObjectCla
 	if (it != BannerClass::Array.cend())
 		BannerClass::Array.erase(it);
 
+	return true;
+}
+
+bool TActionExt::EnableTriggerWithMark(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
+{
+
+	for (auto const trigger : *TriggerClass::Array())
+	{
+		std::string t = pThis->Text;
+		if (Contains("[" + t + "]", trigger->Type->Name)&&!trigger->Destroyed)
+		{
+			trigger->Enable();
+		}
+	}
+	return true;
+}
+bool TActionExt::DisableTriggerrWithMark(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
+{
+	for (auto const trigger : *TriggerClass::Array())
+	{
+		std::string t = pThis->Text;
+		if (Contains("[" + t + "]", trigger->Type->Name) && !trigger->Destroyed)
+		{
+			trigger->Disable();
+		}
+	}
+	return true;
+}
+bool TActionExt::EnableTriggerWithMarkRandomly(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
+{
+	std::vector<TriggerClass*> triggers;
+	for (auto const trigger : *TriggerClass::Array())
+	{
+		std::string t = pThis->Text;
+		if (Contains("[" + t + "]", trigger->Type->Name) && !trigger->Enabled && !trigger->Destroyed)
+		{
+			triggers.push_back(trigger);
+		}
+	}
+	int i = ScenarioClass::Instance->Random.RandomRanged(0, triggers.size() - 1);
+	triggers[i]->Enable();
+	return true;
+}
+bool TActionExt::CreateTeamWithGroupRandomly(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
+{
+	std::vector<TeamTypeClass*> teamtypes;
+	for (auto pTeamType : *TeamTypeClass::Array())
+	{
+		if (pThis->Value == pTeamType->Group)
+		{
+			teamtypes.push_back(pTeamType);
+		}
+	}
+	int i = ScenarioClass::Instance->Random.RandomRanged(0, teamtypes.size() - 1);
+	pThis->TeamType = teamtypes[i];
+	TActionExt::CreateTeam(pThis, pHouse, pObject, pTrigger, location);
+	return true;
+}
+bool TActionExt::CreateTeamWithGroup(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
+{
+	for (auto pTeamType : *TeamTypeClass::Array())
+	{
+		if (pThis->Value == pTeamType->Group)
+		{
+			pThis->TeamType = pTeamType;
+			TActionExt::CreateTeam(pThis, pHouse, pObject, pTrigger, location);
+		}
+	}
+	return true;
+}
+bool TActionExt::CreateTeam(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
+{
+	TaskForceEntryStruct* tStruct = pThis->TeamType->TaskForce->Entries;
+	HouseClass* house = pThis->TeamType->Owner;
+	auto& waypoints = ScenarioExt::Global()->Waypoints;
+	int nWaypoint = pThis->TeamType->Waypoint;
+	CellStruct selectedWP;
+	TeamClass* pTeam = GameCreate<TeamClass>(pThis->TeamType, house,0);
+	int level = pThis->TeamType->VeteranLevel;
+//	TeamClass* pTeam = pThis->TeamType->CreateTeam(house);
+	// Check if is a valid Waypoint
+	if (nWaypoint >= 0 && waypoints.find(nWaypoint) != waypoints.end() && waypoints[nWaypoint].X && waypoints[nWaypoint].Y)
+	{
+		selectedWP = waypoints[nWaypoint];
+	}
+	else
+	{
+		return true;
+	};
+	for (int i = 0; i < 6; ++i)
+	{
+		TaskForceEntryStruct currentEntry = tStruct[i];
+		if (currentEntry.Amount > 0)
+		{
+			auto pTechno = currentEntry.Type;
+			FootClass* pFoot;
+			if (pTechno->WhatAmI() != AbstractType::BuildingType)
+			{
+				for (int j = 0; j < currentEntry.Amount; j++)
+				{
+					pFoot = static_cast<FootClass*>(pTechno->CreateObject(house));
+					if (level == 2)
+					{
+						pFoot->Veterancy.SetVeteran();
+					}
+					else if (level>=3)
+					{
+						pFoot->Veterancy.SetElite();
+					}
+					bool success;
+					auto pCell = MapClass::Instance->TryGetCellAt(selectedWP);
+					const CoordStruct locat = pCell->GetCoords();
+					if (!pCell->GetBuilding())
+					{
+						++Unsorted::IKnowWhatImDoing;
+						success = pFoot->Unlimbo(locat, DirType::NorthEast);
+						--Unsorted::IKnowWhatImDoing;
+						pTeam->AddMember(pFoot, true);
+					}
+					else
+					{
+						success = pFoot->Unlimbo(locat, DirType::NorthEast);
+						pTeam->AddMember(pFoot, true);
+					}
+
+				}
+			}
+			else
+			{
+				return true;
+			}
+		}
+	}
+	pTeam->CurrentScript = GameCreate<ScriptClass>(pThis->TeamType->ScriptType);
+	pTeam->StepCompleted = true;
+	return true;
+}
+void clearFileContent(const std::string& filePath)
+{
+	std::ofstream ofs(filePath, std::ofstream::out | std::ofstream::trunc);
+	if (!ofs)
+	{
+		// 处理打开文件失败的情况  
+		throw std::runtime_error("无法打开文件: " + filePath);
+	}
+
+	// 不需要写入任何内容，因为已经使用了trunc模式  
+	// 该模式会清除文件的所有内容  
+	ofs.close();
+}
+bool TActionExt::ClearFile(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
+{
+	try
+	{
+		clearFileContent(pThis->Text);
+	}
+	catch (const std::exception& e)
+	{
+		return false;
+	}
 	return true;
 }
 // =============================

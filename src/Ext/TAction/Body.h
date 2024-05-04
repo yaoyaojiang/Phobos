@@ -47,6 +47,9 @@ enum class PhobosTriggerAction : unsigned int
 	OutputIntegerRandomlyTargets = 724,
 	OutputDouble = 725,
 	OutputDoubleWithVar = 726,
+	EditOuterIntegers=727,
+	EditOuterDoubles = 728,
+	EditOuterStrings=729,
 };
 
 class TActionExt
@@ -118,6 +121,9 @@ public:
 	ACTION_FUNC(OutputIntegerRandomlyTargets);
 	ACTION_FUNC(OutputDouble);
 	ACTION_FUNC(OutputDoubleWithVar);
+	ACTION_FUNC(EditOuterIntegers);
+	ACTION_FUNC(EditOuterDoubles);
+	ACTION_FUNC(EditOuterStrings);
 	static bool RunSuperWeaponAt(TActionClass* pThis, int X, int Y);
 
 #undef ACTION_FUNC

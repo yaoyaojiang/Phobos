@@ -79,6 +79,32 @@ void splitByAtSymbol(const char* str, char delim, char result[][32], int resultS
 	}
 }
 
+void splitByAtSymbolLarge(const char* str, char delim, char result[][120], int resultSize)
+{
+	int index = 0; // 结果数组的索引  
+	const char* tokenStart = str; // 当前token的起始位置  
+	const char* tokenEnd = str; // 当前token的结束位置  
+
+	// 遍历字符串直到找到足够的token或到达字符串末尾  
+	while (*tokenEnd && index < resultSize - 1)
+	{ // 减1是为了给最后一个token的null终止符留空间  
+		if (*tokenEnd == delim)
+		{
+			// 复制当前token到结果数组  
+			strncpy(result[index], tokenStart, tokenEnd - tokenStart);
+			result[index][tokenEnd - tokenStart] = '\0'; // 添加null终止符  
+			index++;
+			tokenStart = tokenEnd + 1; // 移动到下一个token的起始位置  
+		}
+		tokenEnd++; // 移动到下一个字符  
+	}
+
+	// 复制最后一个token（如果有的话）  
+	if (*tokenStart)
+	{
+		strncpy(result[index], tokenStart, strlen(tokenStart) + 1); // 包括null终止符  
+	}
+}
 wchar_t* ConvertWchar(const char* asciiStr)
 {
 	size_t len = strlen(asciiStr) + 1; // 包括null终止符  
@@ -283,6 +309,12 @@ bool TActionExt::Execute(TActionClass* pThis, HouseClass* pHouse, ObjectClass* p
 		return TActionExt::OutputDoubleWithVar(pThis, pHouse, pObject, pTrigger, location);
 	case PhobosTriggerAction::OutputDouble:
 		return TActionExt::OutputDouble(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::EditOuterIntegers:
+		return TActionExt::EditOuterIntegers(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::EditOuterDoubles:
+		return TActionExt::EditOuterDoubles(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::EditOuterStrings:
+		return TActionExt::EditOuterStrings(pThis, pHouse, pObject, pTrigger, location);
 	default:
 		bHandled = false;
 		return true;
@@ -587,6 +619,171 @@ bool TActionExt::OutputDoubleWithVar(TActionClass* pThis, HouseClass* pHouse, Ob
 	pFile->Close();
 
 	return true;
+}
+bool TActionExt::EditOuterIntegers(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
+{
+	const auto spcialText = pThis->Text;
+	const int maxTokens = 2;
+	char result[maxTokens][32];
+	char delimiter = '@';
+	splitByAtSymbol(spcialText, delimiter, result, maxTokens);
+	const auto fileName = result[0];
+	const auto KeyName = result[1];
+	auto& variables = ScenarioExt::Global()->Variables[0];
+	auto pINI = GameCreate<CCINIClass>();
+	auto pFile = GameCreate<CCFileClass>(fileName);
+	if (pFile->Exists())
+		pINI->ReadCCFile(pFile);
+	else
+	{
+		pFile->CreateFileA();
+	}
+
+	auto itr = variables.find(pThis->Param3);
+	int nCurrentValue = 0;
+	if (itr != variables.end())
+	{
+		nCurrentValue = itr->second.Value;
+	}	
+	if (RulesExt::Global()->AITargetTypesLists.size() > 0
+		&& RulesExt::Global()->AITargetTypesLists[pThis->Param5].size() > 0)
+	{
+		for (auto item : RulesExt::Global()->AITargetTypesLists[pThis->Param5])
+		{
+			int value = pINI->ReadInteger(item->ID, KeyName, 0);
+			switch (pThis->Param4)
+			{				// variable being found
+		   	case 0: { value = nCurrentValue; break; }
+			case 1: { value += nCurrentValue; break; }
+			case 2: { value -= nCurrentValue; break; }
+			case 3: { value *= nCurrentValue; break; }
+			case 4: { value /= nCurrentValue; break; }
+			case 5: { value %= nCurrentValue; break; }
+			case 6: { value <<= nCurrentValue; break; }
+			case 7: { value >>= nCurrentValue; break; }
+			case 8: { value = ~value; break; }
+			case 9: { value ^= nCurrentValue; break; }
+			case 10: { value |= nCurrentValue; break; }
+			case 11: { value &= nCurrentValue; break; }
+			default:
+				return true;
+			}
+
+			pINI->WriteInteger(item->ID, KeyName, value, false);
+		}
+	}
+	else return true;
+	pINI->WriteCCFile(pFile);
+	pFile->Close();
+
+	return true;
+}
+bool TActionExt::EditOuterDoubles(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
+{
+	const auto spcialText = WCharToUtf8(StringTable::LoadString(pThis->Text));
+	const int maxTokens = 4;
+	char result[maxTokens][120];
+	char delimiter = '@';
+	splitByAtSymbolLarge(spcialText, delimiter, result, maxTokens);
+	const auto fileName = result[0];
+	const auto SectionName = result[1];
+	const auto KeyName = result[2];
+	const auto number = result[3];
+	double nCurrentValue = std::stod(number);
+	auto pINI = GameCreate<CCINIClass>();
+	auto pFile = GameCreate<CCFileClass>(fileName);
+	if (pFile->Exists())
+		pINI->ReadCCFile(pFile);
+	else
+	{
+		pFile->CreateFileA();
+	}
+	double value = pINI->ReadDouble(SectionName, KeyName, 0);
+
+    switch (pThis->Param3)
+	{				// variable being found
+		case 0: { value = nCurrentValue; break; }
+		case 1: { value += nCurrentValue; break; }
+		case 2: { value -= nCurrentValue; break; }
+		case 3: { value *= nCurrentValue; break; }
+		case 4: { value /= nCurrentValue; break; }
+		default:
+			return true;
+	}
+    pINI->WriteDouble(SectionName, KeyName, value);
+	pINI->WriteCCFile(pFile);
+	pFile->Close();
+
+	return true;
+}
+/*
+bool Read(INIClass* pINI, const char* pSection, const char* pKey, const char* pDefault = "")
+{
+	if (pINI->ReadString(pSection, pKey, pDefault, Phobos::readBuffer, FixedString<Capacity>::Size))
+	{
+		if (!INIClass::IsBlank(Phobos::readBuffer))
+		{
+			*this = Phobos::readBuffer;
+		}
+		else
+		{
+			*this = nullptr;
+		}
+	}
+	return Phobos::readBuffer[0] != 0;
+}*/
+bool TActionExt::EditOuterStrings(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
+{
+	const auto spcialText = WCharToUtf8(StringTable::LoadString(pThis->Text));
+	const int maxTokens = 4;
+	char result[maxTokens][120];
+	char delimiter = '@';
+	splitByAtSymbolLarge(spcialText, delimiter, result, maxTokens);
+	const auto fileName = result[0];
+	const auto SectionName = result[1];
+	const auto KeyName = result[2];
+	const auto ustring = result[3];
+	auto pINI = GameCreate<CCINIClass>();
+	auto pFile = GameCreate<CCFileClass>(fileName);
+	if (pFile->Exists())
+		pINI->ReadCCFile(pFile);
+	else
+	{
+		pFile->CreateFileA();
+	}
+	char* str = new char[200];
+	std::strcpy(str, "");
+	if (pINI->ReadString(SectionName, KeyName, "", Phobos::readBuffer, FixedString<0x200>::Size))
+	{
+		if (!INIClass::IsBlank(Phobos::readBuffer))
+		{
+			str= Phobos::readBuffer;
+		}
+		else
+		{
+			std::strcpy(str, "");
+		}
+	}
+	if (pThis->Param3==0)
+	{
+		std::strcat(str, ustring);
+		pINI->WriteString(SectionName, KeyName, str);
+	}
+	else if(pThis->Param3 == 1)
+	{
+		std::strcat(ustring, str);
+		pINI->WriteString(SectionName, KeyName, ustring);
+	}
+	else
+	{
+		pINI->WriteString(SectionName, KeyName, ustring);
+	}
+	pINI->WriteCCFile(pFile);
+	pFile->Close();
+	delete[] str;
+	delete[] ustring;
+	return true;
+
 }
 bool TActionExt::ReadVariablesFromFile(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
 {

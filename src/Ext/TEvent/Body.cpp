@@ -37,7 +37,67 @@ void TEventExt::ExtData::SaveToStream(PhobosStreamWriter& Stm)
 	Extension<TEventClass>::SaveToStream(Stm);
 	this->Serialize(Stm);
 }
+char* WCharToUtf(const std::wstring& wstr)
+{
+	size_t utf8Length = 0;
+	for (wchar_t wc : wstr)
+	{
+		if (wc < 0x80)
+		{
+			utf8Length += 1;
+		}
+		else if (wc < 0x800)
+		{
+			utf8Length += 2;
+		}
+		else if (wc < 0x10000)
+		{
+			utf8Length += 3;
+		}
+		else
+		{
+			// Surrogate pair encountered, handle it or return nullptr  
+			return nullptr;
+		}
+	}
 
+	// Allocate memory for the UTF-8 string (including null terminator)  
+	char* utf8Str = new char[utf8Length + 1];
+	if (!utf8Str)
+	{
+		// Allocation failed  
+		return nullptr;
+	}
+
+	char* writePtr = utf8Str;
+	for (wchar_t wc : wstr)
+	{
+		if (wc < 0x80)
+		{
+			*writePtr++ = static_cast<char>(wc);
+		}
+		else if (wc < 0x800)
+		{
+			*writePtr++ = 0xC0 | ((wc >> 6) & 0x1F);
+			*writePtr++ = 0x80 | (wc & 0x3F);
+		}
+		else if (wc < 0x10000)
+		{
+			*writePtr++ = 0xE0 | ((wc >> 12) & 0x0F);
+			*writePtr++ = 0x80 | ((wc >> 6) & 0x3F);
+			*writePtr++ = 0x80 | (wc & 0x3F);
+		}
+		else
+		{
+			// Surrogate pair encountered, cleanup and return nullptr  
+			delete[] utf8Str;
+			return nullptr;
+		}
+	}
+	*writePtr = '\0'; // Add null terminator  
+
+	return utf8Str;
+}
 bool TEventExt::Execute(TEventClass* pThis, int iEvent, HouseClass* pHouse, ObjectClass* pObject,
 	CDTimerClass* pTimer, bool* isPersitant, TechnoClass* pSource, bool& bHandled)
 {
@@ -240,6 +300,32 @@ void splitBySymbol(const char* str, char delim, char result[][32], int resultSiz
 		strncpy(result[index], tokenStart, strlen(tokenStart) + 1); // 包括null终止符  
 	}
 }
+void splitBySymbolLarge(const char* str, char delim, char result[][120], int resultSize)
+{
+	int index = 0; // 结果数组的索引  
+	const char* tokenStart = str; // 当前token的起始位置  
+	const char* tokenEnd = str; // 当前token的结束位置  
+
+	// 遍历字符串直到找到足够的token或到达字符串末尾  
+	while (*tokenEnd && index < resultSize - 1)
+	{ // 减1是为了给最后一个token的null终止符留空间  
+		if (*tokenEnd == delim)
+		{
+			// 复制当前token到结果数组  
+			strncpy(result[index], tokenStart, tokenEnd - tokenStart);
+			result[index][tokenEnd - tokenStart] = '\0'; // 添加null终止符  
+			index++;
+			tokenStart = tokenEnd + 1; // 移动到下一个token的起始位置  
+		}
+		tokenEnd++; // 移动到下一个字符  
+	}
+
+	// 复制最后一个token（如果有的话）  
+	if (*tokenStart)
+	{
+		strncpy(result[index], tokenStart, strlen(tokenStart) + 1); // 包括null终止符  
+	}
+}
 bool TEventExt::OuterVariableEqual(TEventClass* pThis)
 {
 	const auto spcialText = pThis->String;
@@ -259,8 +345,8 @@ bool TEventExt::OuterVariableEqual(TEventClass* pThis)
 		delete pINI;
 		return false;
 	}
-	int target = pThis->Value;
-	int value = pINI->ReadInteger(KeyName, VariableName, 0);
+	double target = pThis->Value;
+	double value = pINI->ReadDouble(KeyName, VariableName, 0);
 	delete pINI;
 	if (value ==target)
 		return true;
@@ -285,8 +371,8 @@ bool TEventExt::OuterVariableBigger(TEventClass* pThis)
 		delete pINI;
 		return false;
 	}
-	int target = pThis->Value;
-	int value = pINI->ReadInteger(KeyName, VariableName, 0);
+	double target = pThis->Value;
+	double value = pINI->ReadDouble(KeyName, VariableName, 0);
 	delete pINI;
 	if (value>target)
 	return true;
@@ -311,8 +397,8 @@ bool TEventExt::OuterVariableSmaller(TEventClass* pThis)
 		delete pINI;
 		return false;
 	}
-	int target = pThis->Value;
-	int value = pINI->ReadInteger(KeyName, VariableName, 0);
+	double target = pThis->Value;
+	double value = pINI->ReadDouble(KeyName, VariableName, 0);
 	delete pINI;
 	if (value < target)
 		return true;
@@ -321,6 +407,89 @@ bool TEventExt::OuterVariableSmaller(TEventClass* pThis)
 bool TEventExt::OuterVariableNotEqual(TEventClass* pThis)
 {
 	return !TEventExt::OuterVariableEqual(pThis);
+}
+bool TEventExt::OuterVariableEqualCsf(TEventClass* pThis)
+{
+
+	const auto spcialText = WCharToUtf(StringTable::LoadString(pThis->String));
+	const int maxTokens = 3;
+	char result[maxTokens][120];
+	char delimiter = '@';
+	splitBySymbolLarge(spcialText, delimiter, result, maxTokens);
+	const auto fileName = result[0];
+	const auto KeyName = result[1];
+	const auto VariableName = result[2];
+	auto pINI = GameCreate<CCINIClass>();
+	auto pFile = GameCreate<CCFileClass>(fileName);
+	if (pFile->Exists())
+		pINI->ReadCCFile(pFile);
+	else
+	{
+		delete pINI;
+		return false;
+	}
+	double target = pThis->Value;
+	double value = pINI->ReadDouble(KeyName, VariableName, 0);
+	delete pINI;
+	if (value == target)
+		return true;
+	else return false;
+}
+bool TEventExt::OuterVariableBiggerCsf(TEventClass* pThis)
+{
+	const auto spcialText = WCharToUtf(StringTable::LoadString(pThis->String));
+	const int maxTokens = 3;
+	char result[maxTokens][120];
+	char delimiter = '@';
+	splitBySymbolLarge(spcialText, delimiter, result, maxTokens);
+	const auto fileName = result[0];
+	const auto KeyName = result[1];
+	const auto VariableName = result[2];
+	auto pINI = GameCreate<CCINIClass>();
+	auto pFile = GameCreate<CCFileClass>(fileName);
+	if (pFile->Exists())
+		pINI->ReadCCFile(pFile);
+	else
+	{
+		delete pINI;
+		return false;
+	}
+	double target = pThis->Value;
+	double value = pINI->ReadDouble(KeyName, VariableName, 0);
+	delete pINI;
+	if (value > target)
+		return true;
+	else return false;
+}
+bool TEventExt::OuterVariableSmallerCsf(TEventClass* pThis)
+{
+	const auto spcialText = WCharToUtf(StringTable::LoadString(pThis->String));
+	const int maxTokens = 3;
+	char result[maxTokens][120];
+	char delimiter = '@';
+	splitBySymbolLarge(spcialText, delimiter, result, maxTokens);
+	const auto fileName = result[0];
+	const auto KeyName = result[1];
+	const auto VariableName = result[2];
+	auto pINI = GameCreate<CCINIClass>();
+	auto pFile = GameCreate<CCFileClass>(fileName);
+	if (pFile->Exists())
+		pINI->ReadCCFile(pFile);
+	else
+	{
+		delete pINI;
+		return false;
+	}
+	double target = pThis->Value;
+	double value = pINI->ReadDouble(KeyName, VariableName, 0);
+	delete pINI;
+	if (value < target)
+		return true;
+	else return false;
+}
+bool TEventExt::OuterVariableNotEqualCsf(TEventClass* pThis)
+{
+	return !TEventExt::OuterVariableEqualCsf(pThis);
 }
 bool TEventExt::SuperWeaponTimerUp(TEventClass* pThis, HouseClass* pHouse)
 {

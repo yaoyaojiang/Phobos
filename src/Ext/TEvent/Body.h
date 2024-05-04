@@ -60,6 +60,10 @@ enum PhobosTriggerEvent
 	OuterVariableBigger = 608,
 	OuterVariableSmaller = 609,
 	OuterVariableNotEqual = 610,
+	OuterVariableEqualCsf = 611,
+	OuterVariableBiggerCsf = 612,
+	OuterVariableSmallerCsf = 613,
+	OuterVariableNotEqualCsf = 614,
 	_DummyMaximum,
 };
 
@@ -106,6 +110,10 @@ public:
 	static bool OuterVariableBigger(TEventClass* pThis);
 	static bool OuterVariableSmaller(TEventClass* pThis);
 	static bool OuterVariableNotEqual(TEventClass* pThis);
+	static bool OuterVariableEqualCsf(TEventClass* pThis);
+	static bool OuterVariableBiggerCsf(TEventClass* pThis);
+	static bool OuterVariableSmallerCsf(TEventClass* pThis);
+	static bool OuterVariableNotEqualCsf(TEventClass* pThis);
 	class ExtContainer final : public Container<TEventExt>
 	{
 	public:

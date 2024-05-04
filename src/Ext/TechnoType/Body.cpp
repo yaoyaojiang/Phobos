@@ -277,6 +277,7 @@ void TechnoTypeExt::ExtData::LoadFromINIFile(CCINIClass* const pINI)
 	this->ShowBuildTime.Read(exINI, pSection, "ShowBuildTime");
 	this->ShowPower.Read(exINI, pSection, "ShowPower");
 	this->ShowBlackout.Read(exINI, pSection, "ShowBlackout");
+	this->Magic.Read(exINI, pSection, "Magic");
 
 	// Ares 0.2
 	this->RadarJamRadius.Read(exINI, pSection, "RadarJamRadius");
@@ -591,6 +592,7 @@ void TechnoTypeExt::ExtData::Serialize(T& Stm)
 		.Process(this->ShowBuildTime)
 		.Process(this->ShowPower)
 		.Process(this->ShowBlackout)
+		.Process(this->Magic)
 		;
 }
 void TechnoTypeExt::ExtData::LoadFromStream(PhobosStreamReader& Stm)

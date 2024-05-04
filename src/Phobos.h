@@ -83,6 +83,8 @@ public:
 		static bool SkirmishUnlimitedColors;
 		static bool ShowDesignatorRange;
 		static bool SaveVariablesOnScenarioEnd;
+		static bool NoSaveLoad;
+		static bool SaveGameOnScenarioStart;
 	};
 
 	class Misc

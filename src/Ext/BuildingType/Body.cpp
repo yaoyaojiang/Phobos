@@ -3,6 +3,7 @@
 #include <Ext/House/Body.h>
 #include <Utilities/GeneralUtils.h>
 #include <Ext/SWType/Body.h>
+#include <MessageListClass.h>
 
 BuildingTypeExt::ExtContainer BuildingTypeExt::ExtMap;
 

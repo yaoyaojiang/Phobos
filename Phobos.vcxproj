@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <ShowAllFiles>true</ShowAllFiles>
@@ -37,6 +37,7 @@
     <ClCompile Include="src\Ext\Bullet\Trajectories\StraightTrajectory.cpp" />
     <ClCompile Include="src\Ext\CaptureManager\Hooks.cpp" />
     <ClCompile Include="src\Ext\CaptureManager\Body.cpp" />
+    <ClCompile Include="src\Ext\TAction\Body.New.cpp" />
     <ClCompile Include="src\New\Entity\BannerClass.cpp" />
     <ClCompile Include="src\New\Type\BannerTypeClass.cpp" />
     <ClCompile Include="src\Ext\OverlayType\Body.cpp" />

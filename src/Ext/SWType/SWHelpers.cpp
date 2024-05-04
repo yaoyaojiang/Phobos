@@ -1,4 +1,5 @@
 #include "Body.h"
+#include <MessageListClass.h>
 
 // Universal handler of the rolls-weights system
 std::vector<int> SWTypeExt::ExtData::WeightedRollsHandler(ValueableVector<float>* rolls, std::vector<ValueableVector<int>>* weights, size_t size)
@@ -178,6 +179,10 @@ bool SWTypeExt::ExtData::IsAvailable(HouseClass* pHouse) const
 	{
 		return pType && pHouse->CountOwnedAndPresent(pType) > 0;
 	};
+	auto IsTechnoPresent = [pHouse](TechnoTypeClass* pType)
+	{
+		return pType && pHouse->CountOwnedAndPresent(pType) > 0;
+	};
 
 	const auto& Aux = this->SW_AuxBuildings;
 
@@ -187,6 +192,11 @@ bool SWTypeExt::ExtData::IsAvailable(HouseClass* pHouse) const
 	const auto& Neg = this->SW_NegBuildings;
 
 	if (std::any_of(Neg.begin(), Neg.end(), IsBuildingPresent))
+		return false;
+
+	const auto& Neg2 = this->SW_NegTechnos;
+
+	if (std::any_of(Neg2.begin(), Neg2.end(), IsTechnoPresent))
 		return false;
 
 	return true;

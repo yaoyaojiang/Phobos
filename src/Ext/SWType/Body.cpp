@@ -45,6 +45,9 @@ void SWTypeExt::ExtData::Serialize(T& Stm)
 		.Process(this->ShowTimer_Priority)
 		.Process(this->Convert_Pairs)
 		.Process(this->ShowDesignatorRange)
+		.Process(this->SW_NegTechnos)
+		.Process(this->SW_Next_ApplyLimitation)
+		.Process(this->SW_Next_ReturnMoney)
 		;
 }
 
@@ -72,6 +75,7 @@ void SWTypeExt::ExtData::LoadFromINIFile(CCINIClass* const pINI)
 	this->SW_ForbiddenHouses = pINI->ReadHouseTypesList(pSection, "SW.ForbiddenHouses", this->SW_ForbiddenHouses);
 	this->SW_AuxBuildings.Read(exINI, pSection, "SW.AuxBuildings");
 	this->SW_NegBuildings.Read(exINI, pSection, "SW.NegBuildings");
+	this->SW_NegTechnos.Read(exINI, pSection, "SW.NegTechnos");
 	this->SW_InitialReady.Read(exINI, pSection, "SW.InitialReady");
 
 	this->UIDescription.Read(exINI, pSection, "UIDescription");
@@ -86,7 +90,8 @@ void SWTypeExt::ExtData::LoadFromINIFile(CCINIClass* const pINI)
 	this->SW_Next_IgnoreInhibitors.Read(exINI, pSection, "SW.Next.IgnoreInhibitors");
 	this->SW_Next_IgnoreDesignators.Read(exINI, pSection, "SW.Next.IgnoreDesignators");
 	this->SW_Next_RollChances.Read(exINI, pSection, "SW.Next.RollChances");
-
+	this->SW_Next_ApplyLimitation.Read(exINI, pSection, "SW.Next.ApplyLimitation");
+	this->SW_Next_ReturnMoney.Read(exINI, pSection, "SW.Next.ReturnMoney");
 	this->ShowTimer_Priority.Read(exINI, pSection, "ShowTimer.Priority");
 
 	char tempBuffer[32];

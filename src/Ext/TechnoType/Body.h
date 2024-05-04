@@ -188,6 +188,7 @@ public:
 		Nullable<bool> ShowBuildTime;
 		Nullable<bool> ShowPower;
 		Nullable<bool> ShowBlackout;
+		Valueable<int> Magic;
 
 		struct LaserTrailDataEntry
 		{
@@ -372,6 +373,7 @@ public:
 			, ShowBuildTime { true }
 			, ShowPower { true }
 			, ShowBlackout { true }
+			, Magic { 0 }
 		{ }
 
 		virtual ~ExtData() = default;

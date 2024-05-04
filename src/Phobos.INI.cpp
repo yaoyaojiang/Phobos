@@ -7,8 +7,11 @@
 #include <Utilities/GeneralUtils.h>
 #include <Utilities/Patch.h>
 #include <Utilities/Macro.h>
+#include <LoadOptionsClass.h>
+#include <WWMessageBox.h>
 
 #include "Misc/BlittersFix.h"
+#include <Ext/Scenario/Body.h>
 
 bool Phobos::UI::DisableEmptySpawnPositions = false;
 bool Phobos::UI::ExtendedToolTips = false;
@@ -46,6 +49,8 @@ int Phobos::Config::CampaignDefaultGameSpeed = 2;
 bool Phobos::Config::SkirmishUnlimitedColors = false;
 bool Phobos::Config::ShowDesignatorRange = false;
 bool Phobos::Config::SaveVariablesOnScenarioEnd = false;
+bool Phobos::Config::NoSaveLoad = false;
+bool Phobos::Config::SaveGameOnScenarioStart = true;
 
 bool Phobos::Misc::CustomGS = false;
 int Phobos::Misc::CustomGS_ChangeInterval[7] = { -1, -1, -1, -1, -1, -1, -1 };
@@ -61,6 +66,7 @@ DEFINE_HOOK(0x5FACDF, OptionsClass_LoadSettings_LoadPhobosSettings, 0x5)
 	Phobos::Config::RealTimeTimers = CCINIClass::INI_RA2MD->ReadBool("Phobos", "RealTimeTimers", false);
 	Phobos::Config::RealTimeTimers_Adaptive = CCINIClass::INI_RA2MD->ReadBool("Phobos", "RealTimeTimers.Adaptive", false);
 	Phobos::Config::DigitalDisplay_Enable = CCINIClass::INI_RA2MD->ReadBool("Phobos", "DigitalDisplay.Enable", false);
+	Phobos::Config::SaveGameOnScenarioStart = CCINIClass::INI_RA2MD->ReadBool("Phobos", "SaveGameOnScenarioStart", true);
 
 	CCINIClass* pINI_UIMD = CCINIClass::LoadINIFile(GameStrings::UIMD_INI);
 
@@ -163,7 +169,15 @@ DEFINE_HOOK(0x5FACDF, OptionsClass_LoadSettings_LoadPhobosSettings, 0x5)
 	}
 
 	Phobos::Config::ShowDesignatorRange = CCINIClass::INI_RA2MD->ReadBool("Phobos", "ShowDesignatorRange", false);
+	Phobos::Config::NoSaveLoad = CCINIClass::INI_RA2MD->ReadBool("Phobos", "NoSaveLoad", false);
 
+
+	if (Phobos::Config::NoSaveLoad)
+	{
+		Patch::Apply_LJMP(0x55DBCD, 0x55DC99);
+		Patch::Apply_RAW(0x67CEF0, {0x33,0xC0,0xC3}); // Corrupt savegame function
+		Patch::Apply_TYPED(0x83D560, {(DWORD)std::rand()}); // Corrupt save game magicn
+	}
 	Phobos::Misc::CustomGS = pINI_RULESMD->ReadBool(GameStrings::General, "CustomGS", false);
 
 	char tempBuffer[26];
@@ -221,4 +235,27 @@ DEFINE_HOOK(0x66E9DF, RulesClass_Process_Phobos, 0x8)
 #endif
 
 	return 0;
+}
+
+DEFINE_HOOK(0x558DDC, LoadOptionsClass_MakeDlg_NoSL, 0x5)
+{
+	if(ScenarioExt::Global()-> CanSaveOrLoad&&!Phobos::Config::NoSaveLoad)
+		return 0;
+
+
+	GET(LoadOptionsClass*, self, ESI);
+	if (self->Mode != LoadOptionsMode::Save && self->Mode != LoadOptionsMode::Load)
+		return 0;
+
+	WWMessageBox::Instance->Process(
+		GeneralUtils::LoadStringUnlessMissing("TXT_HARDCORE_NOSAVE", L"Hard-Core mode on, save/load forbidden!"),
+		StringTable::LoadString(GameStrings::TXT_OK),
+		nullptr, nullptr
+	);
+	return 0x558EA9;
+}
+
+DEFINE_HOOK(0x55DBF5, MainLoop_SaveGame, 0xA)
+{
+	return Phobos::Config::SaveGameOnScenarioStart ? 0 : 0x55DC99;
 }

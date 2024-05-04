@@ -2,6 +2,7 @@
 
 #include <Ext/Anim/Body.h>
 #include <Helpers/Macro.h>
+#include <sstream>
 
 #include <HouseClass.h>
 #include <BuildingClass.h>
@@ -10,6 +11,7 @@
 #include <RadSiteClass.h>
 #include <VocClass.h>
 #include <ScenarioClass.h>
+#include <GameOptionsClass.h>
 
 #include <Utilities/Macro.h>
 
@@ -134,4 +136,53 @@ DEFINE_HOOK(0x6E2368, TActionClass_PlayAnimAt, 0x7)
 		AnimExt::SetAnimOwnerHouseKind(pAnim, pHouse, nullptr, false, true);
 
 	return 0;
+}
+DEFINE_HOOK(0x6C917A, RealTimeGet, 0x6)
+{
+	GET(int, time, ECX);
+
+	const auto fileName = "c.ini";
+	const auto Section = ScenarioClass::Instance()->UIName;
+	char* underscore_position = strchr(Section, ':');
+	if (underscore_position != nullptr&& Section[strlen(Section)-1]=='1')
+	{
+		char* start = underscore_position + 1; // ':' 后面的第一个字符
+		// 找到最后一个字符 '1' 的位置（已知是最后一个字符，所以可以直接用长度-1）
+		char* end = Section + strlen(Section) - 1; // 最后一个字符 '1'
+
+		// 计算中间字符串的长度
+		std::size_t length = end - start;
+
+		// 创建一个新的字符数组来存储结果
+		char* result = new char[length + 1]; // +1 是为了存放终止符 '\0'
+
+		// 复制 ':' 和 '1' 中间的字符串到新数组
+		std::strncpy(result, start, length);
+		result[length] = '\0'; // 手动添加字符串终止符
+    	const auto hard = GameOptionsClass::Instance->Difficulty+1;
+		const auto KeyName = "FastestTime";
+		std::ostringstream oss;
+		oss << hard;
+		std::string b_str = oss.str();
+		std::size_t new_length = strlen(KeyName) + b_str.length();
+		char* newString=new char[new_length+1];
+		strcpy(newString, KeyName);        // 复制字符串 a 到 c
+		strcat(newString, b_str.c_str());
+	    auto pINI = GameCreate<CCINIClass>();
+	    auto pFile = GameCreate<CCFileClass>(fileName);
+    	if (pFile->Exists())
+	    	pINI->ReadCCFile(pFile);
+	    else
+	    	pFile->CreateFileA();
+		int value = pINI->ReadInteger(result, newString, 0);
+		if (value == 0||value>time)
+		{
+			pINI->WriteInteger(result, newString, time, false);
+			pINI->WriteCCFile(pFile);
+		}
+		delete[] newString;
+	    pFile->Close();
+
+	}
+	return  0;
 }

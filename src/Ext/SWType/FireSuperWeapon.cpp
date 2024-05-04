@@ -11,6 +11,7 @@
 #include "Ext/House/Body.h"
 #include "Ext/WarheadType/Body.h"
 #include "Ext/WeaponType/Body.h"
+#include <MessageListClass.h>
 
 // ============= New SuperWeapon Effects================
 
@@ -266,6 +267,7 @@ void SWTypeExt::ExtData::ApplySWNext(SuperClass* pSW, const CellStruct& cell)
 	// SW.Next proper launching mechanic
 	auto LaunchTheSW = [=](const int swIdxToLaunch)
 	{
+		bool returnMoney = true;
 		HouseClass* pHouse = pSW->Owner;
 		if (const auto pSuper = pHouse->Supers.GetItem(swIdxToLaunch))
 		{
@@ -276,17 +278,27 @@ void SWTypeExt::ExtData::ApplySWNext(SuperClass* pSW, const CellStruct& cell)
 				if (this->SW_Next_IgnoreInhibitors || !pNextTypeExt->HasInhibitor(pHouse, cell)
 					&& (this->SW_Next_IgnoreDesignators || pNextTypeExt->HasDesignator(pHouse, cell)))
 				{
-					int oldstart = pSuper->RechargeTimer.StartTime;
-					int oldleft = pSuper->RechargeTimer.TimeLeft;
-					pSuper->SetReadiness(true);
-					pSuper->Launch(cell, true);
-					pSuper->Reset();
-					if (!this->SW_Next_RealLaunch)
+
+					if (!this->SW_Next_ApplyLimitation || (this->SW_Next_ApplyLimitation && pNextTypeExt->IsAvailable(pHouse)))
 					{
-						pSuper->RechargeTimer.StartTime = oldstart;
-						pSuper->RechargeTimer.TimeLeft = oldleft;
+						int oldstart = pSuper->RechargeTimer.StartTime;
+						int oldleft = pSuper->RechargeTimer.TimeLeft;
+						pSuper->SetReadiness(true);
+						pSuper->Launch(cell, true);
+						pSuper->Reset();
+						returnMoney = false;
+						if (!this->SW_Next_RealLaunch)
+						{
+							pSuper->RechargeTimer.StartTime = oldstart;
+							pSuper->RechargeTimer.TimeLeft = oldleft;
+						}
 					}
 				}
+			}
+
+			if (returnMoney&&this->SW_Next_ReturnMoney)
+			{
+				pHouse->TransactMoney(-this->Money_Amount);
 			}
 		}
 	};

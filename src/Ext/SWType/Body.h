@@ -34,6 +34,7 @@ public:
 		DWORD SW_ForbiddenHouses;
 		ValueableVector<BuildingTypeClass*> SW_AuxBuildings;
 		ValueableVector<BuildingTypeClass*> SW_NegBuildings;
+		ValueableVector<TechnoTypeClass*> SW_NegTechnos;
 		Valueable<bool> SW_InitialReady;
 
 		Valueable<CSFText> UIDescription;
@@ -48,6 +49,8 @@ public:
 		Valueable<bool> SW_Next_RealLaunch;
 		Valueable<bool> SW_Next_IgnoreInhibitors;
 		Valueable<bool> SW_Next_IgnoreDesignators;
+		Valueable<bool> SW_Next_ApplyLimitation;
+		Valueable<bool> SW_Next_ReturnMoney;
 		ValueableVector<float> SW_Next_RollChances;
 
 		Valueable<int> ShowTimer_Priority;
@@ -75,6 +78,7 @@ public:
 			, SW_ForbiddenHouses { 0u }
 			, SW_AuxBuildings {}
 			, SW_NegBuildings {}
+			, SW_NegTechnos {}
 			, SW_InitialReady { false }
 			, UIDescription {}
 			, CameoPriority { 0 }
@@ -98,6 +102,8 @@ public:
 			, ShowTimer_Priority { 0 }
 			, Convert_Pairs {}
 			, ShowDesignatorRange { true }
+			, SW_Next_ApplyLimitation { false }
+			, SW_Next_ReturnMoney { false }
 		{ }
 
 		// Ares 0.A functions

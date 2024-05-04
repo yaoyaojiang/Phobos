@@ -276,6 +276,11 @@ DEFINE_HOOK(0x67D04E, GameSave_SavegameInformation, 0x7)
 		Info.ExecutableName.Size - sizeof(" + Phobos " FILE_VERSION_STR)
 	);
 
+	if (Phobos::Config::NoSaveLoad || !ScenarioExt::Global()->CanSaveOrLoad)
+	{
+		// You've somehow cheated to make through this
+		Debug::FatalErrorAndExit("Hard Core mode enabled, save game not allowed!");
+	}
 	return 0;
 }
 

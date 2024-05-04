@@ -124,6 +124,11 @@ void ScenarioExt::ExtData::LoadFromINIFile(CCINIClass* const pINI)
 		this->BriefingTheme = pINI_MISSIONMD->ReadTheme(scenarioName, "BriefingTheme", pINI->ReadTheme(GameStrings::Basic, "BriefingTheme", this->BriefingTheme));
 
 		CCINIClass::UnloadINIFile(pINI_MISSIONMD);
+
+		if (Phobos::Config::NoSaveLoad|| !ScenarioExt::Global()->CanSaveOrLoad)
+		{
+			ScenarioClass::Instance->EndOfGame = true;
+		}
 	}
 }
 
@@ -137,6 +142,7 @@ void ScenarioExt::ExtData::Serialize(T& Stm)
 		.Process(SessionClass::Instance->Config)
 		.Process(this->ShowBriefing)
 		.Process(this->BriefingTheme)
+		.Process(this->CanSaveOrLoad)
 		;
 }
 

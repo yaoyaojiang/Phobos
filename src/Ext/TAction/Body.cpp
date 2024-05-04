@@ -1,5 +1,7 @@
 #include "Body.h"
 
+#include <AircraftClass.h>
+#include <FootClass.h>
 #include <SessionClass.h>
 #include <MessageListClass.h>
 #include <HouseClass.h>
@@ -8,7 +10,8 @@
 #include <SuperClass.h>
 #include <Ext/SWType/Body.h>
 #include <Utilities/SavegameDef.h>
-
+#include <vector>
+#include <iostream>  
 #include <Ext/Scenario/Body.h>
 #include <Ext/CaptureManager/Body.h>
 #include <TriggerClass.h>
@@ -18,6 +21,8 @@
 #include <JumpjetLocomotionClass.h>
 #include <stdexcept>
 #include <fstream>
+#include <algorithm>  
+#include <functional>  
 
 //Static init
 TActionExt::ExtContainer TActionExt::ExtMap;
@@ -29,6 +34,29 @@ template <typename T>
 void TActionExt::ExtData::Serialize(T& Stm)
 {
 	//Stm;
+}
+
+bool containsPointer(const std::vector<TechnoTypeClass*>& transports, TechnoTypeClass* t)
+{
+	for (const auto& ptr : transports)
+	{
+		if (ptr == t)
+		{
+			return true; // 如果找到相同的指针，返回true  
+		}
+	}
+	return false; // 遍历完整个容器后都没有找到，返回false  
+}
+bool containsPointer(const std::vector<FootClass*>& transports, FootClass* t)
+{
+	for (const auto& ptr : transports)
+	{
+		if (ptr == t)
+		{
+			return true; // 如果找到相同的指针，返回true  
+		}
+	}
+	return false; // 遍历完整个容器后都没有找到，返回false  
 }
 bool Contains(std::string a,std::string b)
 {
@@ -79,6 +107,32 @@ void splitByAtSymbol(const char* str, char delim, char result[][32], int resultS
 	}
 }
 
+void splitByAtSymbolLarge(const char* str, char delim, char result[][120], int resultSize)
+{
+	int index = 0; // 结果数组的索引  
+	const char* tokenStart = str; // 当前token的起始位置  
+	const char* tokenEnd = str; // 当前token的结束位置  
+
+	// 遍历字符串直到找到足够的token或到达字符串末尾  
+	while (*tokenEnd && index < resultSize - 1)
+	{ // 减1是为了给最后一个token的null终止符留空间  
+		if (*tokenEnd == delim)
+		{
+			// 复制当前token到结果数组  
+			strncpy(result[index], tokenStart, tokenEnd - tokenStart);
+			result[index][tokenEnd - tokenStart] = '\0'; // 添加null终止符  
+			index++;
+			tokenStart = tokenEnd + 1; // 移动到下一个token的起始位置  
+		}
+		tokenEnd++; // 移动到下一个字符  
+	}
+
+	// 复制最后一个token（如果有的话）  
+	if (*tokenStart)
+	{
+		strncpy(result[index], tokenStart, strlen(tokenStart) + 1); // 包括null终止符  
+	}
+}
 wchar_t* ConvertWchar(const char* asciiStr)
 {
 	size_t len = strlen(asciiStr) + 1; // 包括null终止符  
@@ -283,6 +337,76 @@ bool TActionExt::Execute(TActionClass* pThis, HouseClass* pHouse, ObjectClass* p
 		return TActionExt::OutputDoubleWithVar(pThis, pHouse, pObject, pTrigger, location);
 	case PhobosTriggerAction::OutputDouble:
 		return TActionExt::OutputDouble(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::EditOuterIntegers:
+		return TActionExt::EditOuterIntegers(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::EditOuterDoubles:
+		return TActionExt::EditOuterDoubles(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::EditOuterStrings:
+		return TActionExt::EditOuterStrings(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::OutputDoubleWithVarCsf:
+		return TActionExt::OutputDoubleWithVarCsf(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::EditOuterInteger:
+		return TActionExt::EditOuterInteger(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::SetTechlevel:
+	    return TActionExt::SetTechlevel(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::SetTechSpeed:
+		return TActionExt::SetTechSpeed(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::SetWeaponRange:
+		return TActionExt::SetWeaponRange(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::CreateTeamChrono:
+		return TActionExt::CreateTeamChrono(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::CreateTeamChronoToRandomUnit:
+		return TActionExt::CreateTeamChronoToRandomUnit(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::RunSuperWeaponAtRandomUnit2:
+		return TActionExt::RunSuperWeaponAtRandomUnit2(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::CreateTeamChronoRandom:
+		return TActionExt::CreateTeamChronoRandom(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::MissionFail:
+		return TActionExt::MissionFail(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::BanSaving:
+		return TActionExt::BanSaving(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::CanSaving:
+		return TActionExt::CanSaving(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::OutputRealTime:
+		return TActionExt::OutputRealTime(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::SetTechLevelByString:
+		return TActionExt::SetTechLevelByString(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::UpdateBuildingSpeed:
+		return TActionExt::UpdateBuildingSpeed(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::SetLevelUnlock:
+		return TActionExt::SetLevelUnlock(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::RandomTechNum:
+		return TActionExt::RandomTechNum(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::SetFirstTechUnlock:
+		return TActionExt::SetFirstTechUnlock(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::UpdateArmor:
+		return TActionExt::UpdateArmor(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::UpdateTeamDelays:
+		return TActionExt::UpdateTeamDelays(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::UpdateBuildingSpeedCsf:
+		return TActionExt::UpdateBuildingSpeedCsf(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::UpdateArmorCsf:
+		return TActionExt::UpdateArmorCsf(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::UpdateFirePower:
+		return TActionExt::UpdateFirePower(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::UpdateFirePowerCsf:
+		return TActionExt::UpdateFirePowerCsf(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::SetStrength:
+		return TActionExt::SetStrength(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::SetTechWeapon:
+		return TActionExt::SetTechWeapon(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::RemoveNodeByTechName:
+		return TActionExt::RemoveNodeByTechName(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::MoveNodeByIDRandom:
+		return TActionExt::MoveNodeByIDRandom(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::MoveNodeByIDWaypoint:
+		return TActionExt::MoveNodeByIDWaypoint(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::NodesInitialize:
+		return TActionExt::NodesInitialize(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::AddNodeOnWaypoint:
+			return TActionExt::AddNodeOnWaypoint(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::AddNodeOnWaypointWithIndex:
+			return TActionExt::AddNodeOnWaypointWithIndex(pThis, pHouse, pObject, pTrigger, location);
 	default:
 		bHandled = false;
 		return true;
@@ -452,7 +576,6 @@ bool TActionExt::OutputVariablesToFile(TActionClass* pThis, HouseClass* pHouse, 
 }
 bool TActionExt::OutputInteger(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
 {
-	auto& variables = ScenarioExt::Global()->Variables[0];
 	const auto spcialText = pThis->Text;
 	const int maxTokens = 3;
 	char result[maxTokens][32];
@@ -478,7 +601,6 @@ bool TActionExt::OutputInteger(TActionClass* pThis, HouseClass* pHouse, ObjectCl
 }
 bool TActionExt::OutputIntegerRandomly(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
 {
-	auto& variables = ScenarioExt::Global()->Variables[0];
 	const auto spcialText = pThis->Text;
 	const int maxTokens = 3;
 	char result[maxTokens][32];
@@ -504,7 +626,6 @@ bool TActionExt::OutputIntegerRandomly(TActionClass* pThis, HouseClass* pHouse, 
 }
 bool TActionExt::OutputIntegerRandomlyTargets(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
 {
-	auto& variables = ScenarioExt::Global()->Variables[0];
 	const auto spcialText = pThis->Text;
 	const int maxTokens = 2;
 	char result[maxTokens][32];
@@ -587,6 +708,243 @@ bool TActionExt::OutputDoubleWithVar(TActionClass* pThis, HouseClass* pHouse, Ob
 	pFile->Close();
 
 	return true;
+}
+bool TActionExt::OutputDoubleWithVarCsf(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
+{
+	auto& variables = ScenarioExt::Global()->Variables[0];
+	const auto spcialText = WCharToUtf8(StringTable::LoadString(pThis->Text));
+	const int maxTokens = 3;
+	char result[maxTokens][32];
+	char delimiter = '@';
+	splitByAtSymbol(spcialText, delimiter, result, maxTokens);
+	const auto fileName = result[0];
+	const auto Section = result[1];
+	const auto KeyName = result[2];
+	auto pINI = GameCreate<CCINIClass>();
+	auto pFile = GameCreate<CCFileClass>(fileName);
+
+	if (pFile->Exists())
+		pINI->ReadCCFile(pFile);
+	else
+		pFile->CreateFileA();
+	int a = variables.find(pThis->Param3)->second.Value;
+	int b = variables.find(pThis->Param4)->second.Value;
+	double value = std::round(static_cast<double>(a) / b * 1000.0) / 1000.0;
+	pINI->WriteDouble(Section, KeyName, value);
+	//pINI->WriteString(ScenarioClass::Instance()->FileName, variable->second.Name, variable->second.Name);
+	pINI->WriteCCFile(pFile);
+	pFile->Close();
+
+	return true;
+}
+bool TActionExt::EditOuterIntegers(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
+{
+	const auto spcialText = pThis->Text;
+	const int maxTokens = 2;
+	char result[maxTokens][32];
+	char delimiter = '@';
+	splitByAtSymbol(spcialText, delimiter, result, maxTokens);
+	const auto fileName = result[0];
+	const auto KeyName = result[1];
+	auto& variables = ScenarioExt::Global()->Variables[0];
+	auto pINI = GameCreate<CCINIClass>();
+	auto pFile = GameCreate<CCFileClass>(fileName);
+	if (pFile->Exists())
+		pINI->ReadCCFile(pFile);
+	else
+	{
+		pFile->CreateFileA();
+	}
+
+	auto itr = variables.find(pThis->Param3);
+	int nCurrentValue = 0;
+	if (itr != variables.end())
+	{
+		nCurrentValue = itr->second.Value;
+	}	
+	if (RulesExt::Global()->AITargetTypesLists.size() > 0
+		&& RulesExt::Global()->AITargetTypesLists[pThis->Param5].size() > 0)
+	{
+		for (auto item : RulesExt::Global()->AITargetTypesLists[pThis->Param5])
+		{
+			int value = pINI->ReadInteger(item->ID, KeyName, 0);
+			switch (pThis->Param4)
+			{				// variable being found
+		   	case 0: { value = nCurrentValue; break; }
+			case 1: { value += nCurrentValue; break; }
+			case 2: { value -= nCurrentValue; break; }
+			case 3: { value *= nCurrentValue; break; }
+			case 4: { value /= nCurrentValue; break; }
+			case 5: { value %= nCurrentValue; break; }
+			case 6: { value <<= nCurrentValue; break; }
+			case 7: { value >>= nCurrentValue; break; }
+			case 8: { value = ~value; break; }
+			case 9: { value ^= nCurrentValue; break; }
+			case 10: { value |= nCurrentValue; break; }
+			case 11: { value &= nCurrentValue; break; }
+			default:
+				return true;
+			}
+
+			pINI->WriteInteger(item->ID, KeyName, value, false);
+		}
+	}
+	else return true;
+	pINI->WriteCCFile(pFile);
+	pFile->Close();
+
+	return true;
+}
+bool TActionExt::EditOuterInteger(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
+{
+	const auto spcialText = pThis->Text;
+	const int maxTokens = 3;
+	char result[maxTokens][32];
+	char delimiter = '@';
+	splitByAtSymbol(spcialText, delimiter, result, maxTokens);
+	const auto fileName = result[0];
+	const auto SectionName = result[1];
+	const auto KeyName = result[2];
+	auto pINI = GameCreate<CCINIClass>();
+	auto pFile = GameCreate<CCFileClass>(fileName);
+	if (pFile->Exists())
+		pINI->ReadCCFile(pFile);
+	else
+	{
+		pFile->CreateFileA();
+	}
+	int value = pINI->ReadInteger(SectionName, KeyName, 0);
+	int nCurrentValue = pThis->Param4;
+	switch (pThis->Param3)
+	{				// variable being found
+		case 0: { value = nCurrentValue; break; }
+		case 1: { value += nCurrentValue; break; }
+		case 2: { value -= nCurrentValue; break; }
+		case 3: { value *= nCurrentValue; break; }
+		case 4: { value /= nCurrentValue; break; }
+		case 5: { value %= nCurrentValue; break; }
+		case 6: { value <<= nCurrentValue; break; }
+		case 7: { value >>= nCurrentValue; break; }
+		case 8: { value = ~value; break; }
+		case 9: { value ^= nCurrentValue; break; }
+		case 10: { value |= nCurrentValue; break; }
+		case 11: { value &= nCurrentValue; break; }
+		default:
+			return true;
+	}
+
+	pINI->WriteInteger(SectionName, KeyName, value, false);
+	pINI->WriteCCFile(pFile);
+	pFile->Close();
+
+	return true;
+}
+bool TActionExt::EditOuterDoubles(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
+{
+	const auto spcialText = WCharToUtf8(StringTable::LoadString(pThis->Text));
+	const int maxTokens = 4;
+	char result[maxTokens][120];
+	char delimiter = '@';
+	splitByAtSymbolLarge(spcialText, delimiter, result, maxTokens);
+	const auto fileName = result[0];
+	const auto SectionName = result[1];
+	const auto KeyName = result[2];
+	const auto number = result[3];
+	double nCurrentValue = std::stod(number);
+	auto pINI = GameCreate<CCINIClass>();
+	auto pFile = GameCreate<CCFileClass>(fileName);
+	if (pFile->Exists())
+		pINI->ReadCCFile(pFile);
+	else
+	{
+		pFile->CreateFileA();
+	}
+	double value = pINI->ReadDouble(SectionName, KeyName, 0);
+
+    switch (pThis->Param3)
+	{				// variable being found
+		case 0: { value = nCurrentValue; break; }
+		case 1: { value += nCurrentValue; break; }
+		case 2: { value -= nCurrentValue; break; }
+		case 3: { value *= nCurrentValue; break; }
+		case 4: { value /= nCurrentValue; break; }
+		default:
+			return true;
+	}
+    pINI->WriteDouble(SectionName, KeyName, value);
+	pINI->WriteCCFile(pFile);
+	pFile->Close();
+
+	return true;
+}
+/*
+bool Read(INIClass* pINI, const char* pSection, const char* pKey, const char* pDefault = "")
+{
+	if (pINI->ReadString(pSection, pKey, pDefault, Phobos::readBuffer, FixedString<Capacity>::Size))
+	{
+		if (!INIClass::IsBlank(Phobos::readBuffer))
+		{
+			*this = Phobos::readBuffer;
+		}
+		else
+		{
+			*this = nullptr;
+		}
+	}
+	return Phobos::readBuffer[0] != 0;
+}*/
+bool TActionExt::EditOuterStrings(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
+{
+	const auto spcialText = WCharToUtf8(StringTable::LoadString(pThis->Text));
+	const int maxTokens = 4;
+	char result[maxTokens][120];
+	char delimiter = '@';
+	splitByAtSymbolLarge(spcialText, delimiter, result, maxTokens);
+	const auto fileName = result[0];
+	const auto SectionName = result[1];
+	const auto KeyName = result[2];
+	const auto ustring = result[3];
+	auto pINI = GameCreate<CCINIClass>();
+	auto pFile = GameCreate<CCFileClass>(fileName);
+	if (pFile->Exists())
+		pINI->ReadCCFile(pFile);
+	else
+	{
+		pFile->CreateFileA();
+	}
+	char* str = new char[200];
+	std::strcpy(str, "");
+	if (pINI->ReadString(SectionName, KeyName, "", Phobos::readBuffer, FixedString<0x200>::Size))
+	{
+		if (!INIClass::IsBlank(Phobos::readBuffer))
+		{
+			str= Phobos::readBuffer;
+		}
+		else
+		{
+			std::strcpy(str, "");
+		}
+	}
+	if (pThis->Param3==0)
+	{
+		std::strcat(str, ustring);
+		pINI->WriteString(SectionName, KeyName, str);
+	}
+	else if(pThis->Param3 == 1)
+	{
+		std::strcat(ustring, str);
+		pINI->WriteString(SectionName, KeyName, ustring);
+	}
+	else
+	{
+		pINI->WriteString(SectionName, KeyName, ustring);
+	}
+	pINI->WriteCCFile(pFile);
+	pFile->Close();
+	delete[] str;
+	delete[] ustring;
+	return true;
+
 }
 bool TActionExt::ReadVariablesFromFile(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
 {
@@ -836,6 +1194,7 @@ bool TActionExt::BinaryOperation(TActionClass* pThis, HouseClass* pHouse, Object
 	}
 	return true;
 }
+
 //AI目标类别（需定义AITargetTypes）、超武ID、使用所属方、目标所属方
 bool TActionExt::RunSuperWeaponAtRandomUnit(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
 {
@@ -843,6 +1202,7 @@ bool TActionExt::RunSuperWeaponAtRandomUnit(TActionClass* pThis, HouseClass* pHo
 		return true;
 	std::vector<CellStruct> c;
 	int j = 0;
+
 	if (RulesExt::Global()->AITargetTypesLists.size() > 0
 		&& RulesExt::Global()->AITargetTypesLists[pThis->Value].size() > 0)
 	{
@@ -858,6 +1218,9 @@ bool TActionExt::RunSuperWeaponAtRandomUnit(TActionClass* pThis, HouseClass* pHo
 						if (pThis->Param6 == 0)
 						{
 							CellStruct cell = { pTechno->GetMapCoords().X ,pTechno->GetMapCoords().Y };
+							/*auto pSuper = pHouse->Supers.GetItem(pThis->Param3);
+							const auto pSWExt = SWTypeExt::ExtMap.Find(pSuper->Type);
+							if (!pSWExt->HasInhibitor(pHouse, cell))*/
 							c.push_back(cell);
 							j++;
 						}
@@ -873,8 +1236,80 @@ bool TActionExt::RunSuperWeaponAtRandomUnit(TActionClass* pThis, HouseClass* pHo
 		}
 	}
 	if (j == 0) return true;
-	int i = ScenarioClass::Instance->Random.RandomRanged(0, static_cast<int>(c.size()));
+	int i = ScenarioClass::Instance->Random.RandomRanged(0, static_cast<int>(c.size())-1);
 	TActionExt::RunSuperWeaponAt(pThis, c[i].X, c[i].Y);
+	return true;
+}
+int findIndexInD(const std::vector<TechnoTypeClass*>& d, TechnoTypeClass* type)
+{
+	for (size_t i = 0; i < d.size(); ++i)
+	{
+		if (d[i] == type)
+		{
+			return static_cast<int>(i);
+		}
+	}
+	// 如果没找到，返回-1或抛出异常，取决于你的需求  
+	return -1;
+}
+
+// 自定义比较函数，用于排序  
+bool compareTechnoClasses(TechnoClass* a, TechnoClass* b, const std::vector<TechnoTypeClass*>& d)
+{
+	int indexA = findIndexInD(d, a->GetTechnoType());
+	int indexB = findIndexInD(d, b->GetTechnoType());
+	return indexA < indexB;
+}
+std::vector<TechnoClass*> findTechnosWithSameType(const std::vector<TechnoClass*>& c, TechnoTypeClass* type)
+{
+	std::vector<TechnoClass*> sameTypeTechnos;
+	for (TechnoClass* techno : c)
+	{
+		if (techno->GetTechnoType() == type)
+		{
+			sameTypeTechnos.push_back(techno);
+		}
+	}
+	return sameTypeTechnos;
+}
+//AI目标类别（需定义AITargetTypes）、超武ID、使用所属方、目标所属方、第二优先级AI目标类别
+bool TActionExt::RunSuperWeaponAtRandomUnit2(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
+{
+	if (!pThis)
+		return true;
+	std::vector<TechnoClass*> c;
+	std::vector<TechnoTypeClass*> d= RulesExt::Global()->AITargetTypesLists[pThis->Value];
+	int j = 0;
+	if (RulesExt::Global()->AITargetTypesLists.size() > 0
+		&& RulesExt::Global()->AITargetTypesLists[pThis->Value].size() > 0)
+	{
+		HouseClass* targetHouse = HouseClass::Array->GetItem(pThis->Param5);
+		for (auto const pTechno : *TechnoClass::Array())
+		{
+			if (pTechno->Owner == targetHouse)
+			{
+				for (auto item : RulesExt::Global()->AITargetTypesLists[pThis->Value])
+				{
+					if (pTechno->GetTechnoType() == item && !pTechno->InLimbo && pTechno->IsOnMap && pTechno->IsAlive)
+					{
+						c.push_back(pTechno);
+						j++;
+					}
+				}
+			}
+		}
+	}
+	if (j > 0)
+	{
+		//std::sort(c.begin(), c.end(), std::bind(compareTechnoClasses, std::placeholders::_1, std::placeholders::_2, std::cref(d)));
+		std::vector<TechnoClass*>e = findTechnosWithSameType(c,c[0]->GetTechnoType());
+		int i = ScenarioClass::Instance->Random.RandomRanged(0, static_cast<int>(e.size()) - 1);
+		CellStruct cell = { e[i]->GetMapCoords().X ,e[i]->GetMapCoords().Y };
+		TActionExt::RunSuperWeaponAt(pThis, cell.X, cell.Y);
+
+	}
+
+	
 	return true;
 }
 bool TActionExt::RunSuperWeaponAtLocation(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
@@ -913,7 +1348,6 @@ bool TActionExt::RunSuperWeaponAt(TActionClass* pThis, int X, int Y)
 		int houseIdx = -1;
 		std::vector<int> housesListIdx;
 		CellStruct targetLocation = { (short)X, (short)Y };
-
 		do
 		{
 			if (X < 0)
@@ -1179,13 +1613,9 @@ bool TActionExt::BindTechnologyToTag(TActionClass* pThis, HouseClass* pHouse, Ob
 void CreateOrReplaceBanner(TActionClass* pTAction, bool isGlobal)
 {
 	BannerTypeClass* pBannerType = BannerTypeClass::Array[pTAction->Param3].get();
+
 	auto& banners = BannerClass::Array;
-	if (!pBannerType)
-	{
-		CRT::swprintf(Phobos::wideBuffer, L"%s", "BannerType not found");
-		MessageListClass::Instance->PrintMessage(Phobos::wideBuffer);
-	}
-	const auto it = std::find_if(banners.cbegin(), banners.cend(),
+    const auto it = std::find_if(banners.cbegin(), banners.cend(),
 		[pTAction](const std::unique_ptr<BannerClass>& pBanner)
 		{
 			return pBanner->ID == pTAction->Value;
@@ -1310,11 +1740,15 @@ bool TActionExt::CreateTeam(TActionClass* pThis, HouseClass* pHouse, ObjectClass
 	auto& waypoints = ScenarioExt::Global()->Waypoints;
 	int nWaypoint = pThis->TeamType->Waypoint;
 	CellStruct selectedWP;
-	TeamClass* pTeam = GameCreate<TeamClass>(pThis->TeamType, house,0);
 	int level = pThis->TeamType->VeteranLevel;
-//	TeamClass* pTeam = pThis->TeamType->CreateTeam(house);
-	// Check if is a valid Waypoint
-	if (nWaypoint >= 0 && waypoints.find(nWaypoint) != waypoints.end() && waypoints[nWaypoint].X && waypoints[nWaypoint].Y)
+	bool full = pThis->TeamType->Full;
+	bool dropped = pThis->TeamType->Droppod;
+	std::vector<TechnoTypeClass*> transports;
+	std::vector<FootClass*> foots;
+	std::vector<FootClass*> foots2;
+	int maxsize = 0;
+	TeamClass* pTeam = GameCreate<TeamClass>(pThis->TeamType, house, 0);
+	 if (nWaypoint >= 0 && waypoints.find(nWaypoint) != waypoints.end() && waypoints[nWaypoint].X && waypoints[nWaypoint].Y)
 	{
 		selectedWP = waypoints[nWaypoint];
 	}
@@ -1322,52 +1756,667 @@ bool TActionExt::CreateTeam(TActionClass* pThis, HouseClass* pHouse, ObjectClass
 	{
 		return true;
 	};
-	for (int i = 0; i < 6; ++i)
+	 if (full)
 	{
-		TaskForceEntryStruct currentEntry = tStruct[i];
-		if (currentEntry.Amount > 0)
-		{
-			auto pTechno = currentEntry.Type;
-			FootClass* pFoot;
-			if (pTechno->WhatAmI() != AbstractType::BuildingType)
-			{
-				for (int j = 0; j < currentEntry.Amount; j++)
-				{
-					pFoot = static_cast<FootClass*>(pTechno->CreateObject(house));
-					if (level == 2)
-					{
-						pFoot->Veterancy.SetVeteran();
-					}
-					else if (level>=3)
-					{
-						pFoot->Veterancy.SetElite();
-					}
-					bool success;
-					auto pCell = MapClass::Instance->TryGetCellAt(selectedWP);
-					const CoordStruct locat = pCell->GetCoords();
-					if (!pCell->GetBuilding())
-					{
-						++Unsorted::IKnowWhatImDoing;
-						success = pFoot->Unlimbo(locat, DirType::NorthEast);
-						--Unsorted::IKnowWhatImDoing;
-						pTeam->AddMember(pFoot, true);
-					}
-					else
-					{
-						success = pFoot->Unlimbo(locat, DirType::NorthEast);
-						pTeam->AddMember(pFoot, true);
-					}
+		// Collect available transports
 
-				}
-			}
-			else
+		for (int i = 0; i < 6; ++i)
+		{
+			TaskForceEntryStruct currentEntry = tStruct[i];
+			FootClass* pFoot;
+			if (currentEntry.Amount > 0)
 			{
-				return true;
+				auto pType = currentEntry.Type;
+				if (pType->Passengers > 0)
+				{
+					transports.emplace_back(pType);
+					if (pType->Passengers > maxsize) maxsize = pType->Passengers;
+				}
 			}
 		}
 	}
-	pTeam->CurrentScript = GameCreate<ScriptClass>(pThis->TeamType->ScriptType);
-	pTeam->StepCompleted = true;
+	 if (dropped)
+	 {
+		 for (auto pUnit = pTeam->FirstUnit; pUnit; pUnit = pUnit->NextTeamMember)
+		 {
+			 pTeam->LiberateMember(pUnit);
+		 }
+		 auto pPlaneType = AircraftTypeClass::Array->GetItem(AircraftTypeClass::FindIndex("PDPLANE"));
+		 auto pTarget = MapClass::Instance->TryGetCellAt(selectedWP);
+		 ++Unsorted::IKnowWhatImDoing;
+		 auto const pPlane = abstract_cast<AircraftClass*>(pPlaneType->CreateObject(pHouse));
+		 --Unsorted::IKnowWhatImDoing;
+		 pPlane->Spawned = true;
+		 //Get edge (direction for plane to come from)
+		 auto edge = pHouse->StartingEdge;
+		 if (edge < Edge::North || edge > Edge::West)
+		 {
+			 edge = pHouse->Edge;
+			 if (edge < Edge::North || edge > Edge::West)
+			 {
+				 edge = Edge::North;
+			 }
+		 }
+		 int startf = pTeam->Type->TransportWaypoint;
+		 CellStruct  spawn_cell;
+		 if (startf >= 0)
+		 {
+			 spawn_cell = waypoints[startf];
+		 }
+		 // seems to retrieve a random cell struct at a given edge
+		 else
+		 {
+			 spawn_cell = MapClass::Instance->PickCellOnEdge(
+				 edge, CellStruct::Empty, CellStruct::Empty, SpeedType::Winged, true,
+				 MovementZone::Normal);
+		 }
+		 pPlane->QueueMission(Mission::ParadropApproach, false);
+
+		 if (pTarget)
+		 {
+			 pPlane->SetTarget(pTarget);
+		 }
+
+		 auto const spawn_crd = CellClass::Cell2Coord(spawn_cell);
+
+		 ++Unsorted::IKnowWhatImDoing;
+		 auto const bSpawned = pPlane->Unlimbo(spawn_crd, DirType::NorthEast);
+		 --Unsorted::IKnowWhatImDoing;
+
+		 if (!bSpawned)
+		 {
+			 GameDelete(pPlane);
+			 return true;
+		 }
+		 for (int i = 0; i < 6; ++i)
+		 {
+			 TaskForceEntryStruct currentEntry = tStruct[i];
+			 if (currentEntry.Amount > 0)
+			 {
+				 auto pTechno = currentEntry.Type;
+				 if (pTechno->WhatAmI() != AbstractType::BuildingType)
+				 {		
+					 for (int k = 0; k < currentEntry.Amount; ++k)
+					 {
+						 ++Unsorted::IKnowWhatImDoing;
+						 auto const pNew = pTechno->CreateObject(house);
+						 auto pFoot = static_cast<FootClass*>(pNew);
+						 pTeam->AddMember(pFoot, true);
+						 --Unsorted::IKnowWhatImDoing;
+
+						 if (level == 2)
+						 {
+							 pFoot->Veterancy.SetVeteran();
+						 }
+						 else if (level >= 3)
+						 {
+							 pFoot->Veterancy.SetElite();
+						 }
+						 pFoot->Limbo();
+						 pPlane->Passengers.AddPassenger(static_cast<FootClass*>(pNew));
+					 }
+				 }
+				 else
+				 {
+					 return true;
+				 }
+			 }
+		 }
+		 pPlane->HasPassengers = true;
+		 pPlane->NextMission();
+	 }
+	 else if (transports.size() > 0)
+	 {
+		for (int i = 0; i < 6; ++i)
+		{
+			TaskForceEntryStruct currentEntry = tStruct[i];
+			FootClass* pFoot;
+			if (currentEntry.Amount > 0)
+			{
+				auto pType = currentEntry.Type;
+				if (pType->WhatAmI() == AbstractType::BuildingType) return true;
+				if (containsPointer(transports, pType)&&pType->Passengers==maxsize)
+				{
+					for (int j = 0; j < currentEntry.Amount; j++)
+					{
+						pFoot = static_cast<FootClass*>(pType->CreateObject(house));
+						if (level == 2)
+						{
+							pFoot->Veterancy.SetVeteran();
+						}
+						else if (level >= 3)
+						{
+							pFoot->Veterancy.SetElite();
+						}
+						foots.emplace_back(pFoot);
+					}
+				}
+			}
+		}
+		for (int i = 0; i < 6; ++i)
+		{
+			TaskForceEntryStruct currentEntry = tStruct[i];
+			FootClass* pFoot;
+			if (currentEntry.Amount > 0)
+			{
+				auto pType = currentEntry.Type;
+				if (pType->WhatAmI() == AbstractType::BuildingType) return true;
+				if (pType->Passengers<maxsize)
+				{
+					for (int j = 0; j < currentEntry.Amount; j++)
+					{
+						pFoot = static_cast<FootClass*>(pType->CreateObject(house));
+						if (level == 2)
+						{
+							pFoot->Veterancy.SetVeteran();
+						}
+						else if (level >= 3)
+						{
+							pFoot->Veterancy.SetElite();
+						}
+						foots2.emplace_back(pFoot);
+					}
+				}
+			}
+		}
+		std::vector<FootClass*>toDelete;
+		auto pCell = MapClass::Instance->TryGetCellAt(selectedWP);
+		const CoordStruct locat = pCell->GetCoords();
+		for (auto pFoot : foots)
+		{
+			auto techtype = pFoot->GetTechnoType();
+			int size = techtype->Passengers;
+			int limit = techtype->SizeLimit;
+			int sizeleft = size;
+
+			FootClass* pGunner = nullptr;
+			bool topped = pFoot->GetTechnoType()->OpenTopped;
+			for (auto pUnit : foots2)
+			{
+				auto utype = pUnit->GetTechnoType();
+				if (sizeleft > 0 && utype->Size <= limit && utype->Size <= sizeleft && !containsPointer(toDelete, pUnit))
+				{
+					pGunner = pUnit;
+					if (topped)
+					{
+						pFoot->EnteredOpenTopped(pUnit);
+					}
+					pUnit->Transporter = pFoot;
+					pFoot->AddPassenger(pUnit);
+					pTeam->AddMember(pUnit, true);
+					toDelete.push_back(pUnit);
+					sizeleft -= utype->Size;
+				}
+			}
+			if (pFoot->GetTechnoType()->Gunner && pGunner)
+				pFoot->ReceiveGunner(pGunner);
+			bool success;
+			if (!pCell->GetBuilding())
+			{
+				++Unsorted::IKnowWhatImDoing;
+				success = pFoot->Unlimbo(locat, DirType::NorthEast);
+				--Unsorted::IKnowWhatImDoing;
+				pTeam->AddMember(pFoot, true);
+			}
+			else
+			{
+				success = pFoot->Unlimbo(locat, DirType::NorthEast);
+				pTeam->AddMember(pFoot, true);
+			}
+		}
+		bool suc;
+		for (auto pUnit : foots2)
+		{
+			if (!containsPointer(toDelete, pUnit))
+			{
+				++Unsorted::IKnowWhatImDoing;
+				suc= pUnit->Unlimbo(locat, DirType::NorthEast);
+				pTeam->AddMember(pUnit, true);
+				--Unsorted::IKnowWhatImDoing;
+			}
+		}
+		pTeam->IsForcedActive = true;
+		pTeam->CurrentScript = GameCreate<ScriptClass>(pThis->TeamType->ScriptType);
+		pTeam->StepCompleted = true;
+
+	}
+//	TeamClass* pTeam = pThis->TeamType->CreateTeam(house);
+	// Check if is a valid Waypoint
+	else
+	{
+		for (int i = 0; i < 6; ++i)
+		{
+			TaskForceEntryStruct currentEntry = tStruct[i];
+			if (currentEntry.Amount > 0)
+			{
+				auto pTechno = currentEntry.Type;
+				FootClass* pFoot;
+				if (pTechno->WhatAmI() != AbstractType::BuildingType)
+				{
+					for (int j = 0; j < currentEntry.Amount; j++)
+					{
+						pFoot = static_cast<FootClass*>(pTechno->CreateObject(house));
+						if (level == 2)
+						{
+							pFoot->Veterancy.SetVeteran();
+						}
+						else if (level >= 3)
+						{
+							pFoot->Veterancy.SetElite();
+						}
+						bool success;
+						auto pCell = MapClass::Instance->TryGetCellAt(selectedWP);
+						const CoordStruct locat = pCell->GetCoords();
+						if (!pCell->GetBuilding())
+						{
+							++Unsorted::IKnowWhatImDoing;
+							success = pFoot->Unlimbo(locat, DirType::NorthEast);
+							--Unsorted::IKnowWhatImDoing;
+							pTeam->AddMember(pFoot, true);
+						}
+						else
+						{
+							success = pFoot->Unlimbo(locat, DirType::NorthEast);
+							pTeam->AddMember(pFoot, true);
+						}
+
+					}
+				}
+				else
+				{
+					return true;
+				}
+			}
+		}
+		pTeam->CurrentScript = GameCreate<ScriptClass>(pThis->TeamType->ScriptType);
+		pTeam->StepCompleted = true;
+	}
+
+	return true;
+}
+
+void EffectAnimationCreate(CoordStruct coord, HouseClass* pHouse)
+{
+	AnimTypeClass* pAnimType = RulesClass::Instance->ChronoSparkle1;
+	if (AnimClass* const pAnim = GameCreate<AnimClass>(pAnimType, coord))
+	{
+		pAnim->Owner = pHouse;
+	}
+}
+
+bool CreateTeamChronoW(TActionClass * pThis, HouseClass * pHouse, CellStruct selectedWP)
+{
+	TaskForceEntryStruct* tStruct = pThis->TeamType->TaskForce->Entries;
+	HouseClass* house = pThis->TeamType->Owner;
+	int level = pThis->TeamType->VeteranLevel;
+	bool full = pThis->TeamType->Full;
+	std::vector<TechnoTypeClass*> transports;
+	std::vector<FootClass*> foots;
+	std::vector<FootClass*> foots2;
+	int a[1000][2];
+	int maxsize = 0;
+	int x = 0;
+	int y = 0;
+	int xy = 0;
+	TeamClass* pTeam = GameCreate<TeamClass>(pThis->TeamType, house, 0);
+
+	if (full)
+	{
+		// Collect available transports
+
+		for (int i = 0; i < 6; ++i)
+		{
+			TaskForceEntryStruct currentEntry = tStruct[i];
+			FootClass* pFoot;
+			if (currentEntry.Amount > 0)
+			{
+				auto pType = currentEntry.Type;
+				if (pType->Passengers > 0)
+				{
+					transports.emplace_back(pType);
+					if (pType->Passengers > maxsize) maxsize = pType->Passengers;
+				}
+			}
+		}
+	}
+	if (transports.size() > 0)
+	{
+		for (int i = 0; i < 6; ++i)
+		{
+			TaskForceEntryStruct currentEntry = tStruct[i];
+			FootClass* pFoot;
+			if (currentEntry.Amount > 0)
+			{
+				auto pType = currentEntry.Type;
+				if (pType->WhatAmI() == AbstractType::BuildingType) return true;
+				if (containsPointer(transports, pType) && pType->Passengers == maxsize)
+				{
+					for (int j = 0; j < currentEntry.Amount; j++)
+					{
+						pFoot = static_cast<FootClass*>(pType->CreateObject(house));
+						if (level == 2)
+						{
+							pFoot->Veterancy.SetVeteran();
+						}
+						else if (level >= 3)
+						{
+							pFoot->Veterancy.SetElite();
+						}
+						foots.emplace_back(pFoot);
+					}
+				}
+			}
+		}
+
+		for (int i = 0; i < 6; ++i)
+		{
+			TaskForceEntryStruct currentEntry = tStruct[i];
+			FootClass* pFoot;
+			if (currentEntry.Amount > 0)
+			{
+				auto pType = currentEntry.Type;
+				if (pType->WhatAmI() == AbstractType::BuildingType) return true;
+				if (pType->Passengers < maxsize)
+				{
+					for (int j = 0; j < currentEntry.Amount; j++)
+					{
+						pFoot = static_cast<FootClass*>(pType->CreateObject(house));
+						if (level == 2)
+						{
+							pFoot->Veterancy.SetVeteran();
+						}
+						else if (level >= 3)
+						{
+							pFoot->Veterancy.SetElite();
+						}
+						foots2.emplace_back(pFoot);
+					}
+				}
+			}
+		}
+		std::vector<FootClass*>toDelete;
+		auto pCell = MapClass::Instance->TryGetCellAt(selectedWP);
+		CoordStruct locat = pCell->GetCoords();
+		for (auto pFoot : foots)
+		{
+			auto techtype = pFoot->GetTechnoType();
+			int size = techtype->Passengers;
+			int limit = techtype->SizeLimit;
+			int sizeleft = size;
+
+			FootClass* pGunner = nullptr;
+			bool topped = pFoot->GetTechnoType()->OpenTopped;
+			for (auto pUnit : foots2)
+			{
+				auto utype = pUnit->GetTechnoType();
+				if (sizeleft > 0 && utype->Size <= limit && utype->Size <= sizeleft && !containsPointer(toDelete, pUnit))
+				{
+					pGunner = pUnit;
+					if (topped)
+					{
+						pFoot->EnteredOpenTopped(pUnit);
+					}
+					pUnit->Transporter = pFoot;
+					pFoot->AddPassenger(pUnit);
+					pTeam->AddMember(pUnit, true);
+					toDelete.push_back(pUnit);
+					sizeleft -= utype->Size;
+				}
+			}
+			if (pFoot->GetTechnoType()->Gunner && pGunner)
+				pFoot->ReceiveGunner(pGunner);
+			bool success;
+			auto unit = pFoot->GetTechnoType();
+			bool allowBridges = GroundType::Array[static_cast<int>(LandType::Clear)].Cost[static_cast<int>(unit->SpeedType)] > 0.0;
+			bool isBridge = allowBridges && pCell->ContainsBridge();
+			auto nCell = MapClass::Instance->NearByLocation(CellClass::Coord2Cell(locat),
+				unit->SpeedType, -1, unit->MovementZone, isBridge, 1, 1, true,
+				false, false, isBridge, CellStruct::Empty, false, false);
+
+			pCell = MapClass::Instance->TryGetCellAt(nCell);
+			CoordStruct loc = pCell->GetCoords();
+
+			if (!pCell->GetBuilding())
+			{
+				++Unsorted::IKnowWhatImDoing;
+				success = pFoot->Unlimbo(loc, DirType::NorthEast);
+				--Unsorted::IKnowWhatImDoing;
+				pTeam->AddMember(pFoot, true);
+			}
+			else
+			{
+				success = pFoot->Unlimbo(loc, DirType::NorthEast);
+				pTeam->AddMember(pFoot, true);
+			}
+			EffectAnimationCreate(loc, house);
+			AnimTypeClass* pAnimType = RulesClass::Instance->ChronoBlastDest;
+			if (AnimClass* const pAnim = GameCreate<AnimClass>(pAnimType, locat))
+			{
+				pAnim->Owner = pHouse;
+			}
+		}
+		bool suc;
+		for (auto pUnit : foots2)
+		{
+			auto unit = pUnit->GetTechnoType();
+			bool allowBridges = GroundType::Array[static_cast<int>(LandType::Clear)].Cost[static_cast<int>(unit->SpeedType)] > 0.0;
+			bool isBridge = allowBridges && pCell->ContainsBridge();
+			auto nCell = MapClass::Instance->NearByLocation(CellClass::Coord2Cell(locat),
+				unit->SpeedType, -1, unit->MovementZone, isBridge, 1, 1, true,
+				false, false, isBridge, CellStruct::Empty, false, false);
+
+			pCell = MapClass::Instance->TryGetCellAt(nCell);
+			CoordStruct loc = pCell->GetCoords();
+			if (!containsPointer(toDelete, pUnit))
+			{
+				++Unsorted::IKnowWhatImDoing;
+				suc = pUnit->Unlimbo(loc, DirType::NorthEast);
+				pTeam->AddMember(pUnit, true);
+				--Unsorted::IKnowWhatImDoing;
+			}
+		}
+		pTeam->IsForcedActive = true;
+		pTeam->CurrentScript = GameCreate<ScriptClass>(pThis->TeamType->ScriptType);
+		pTeam->StepCompleted = true;
+
+	}
+	//	TeamClass* pTeam = pThis->TeamType->CreateTeam(house);
+		// Check if is a valid Waypoint
+	else
+	{
+		for (int i = 0; i < 6; ++i)
+		{
+			TaskForceEntryStruct currentEntry = tStruct[i];
+			if (currentEntry.Amount > 0)
+			{
+				auto pTechno = currentEntry.Type;
+				FootClass* pFoot;
+				if (pTechno->WhatAmI() != AbstractType::BuildingType)
+				{
+					for (int j = 0; j < currentEntry.Amount; j++)
+					{
+						pFoot = static_cast<FootClass*>(pTechno->CreateObject(house));
+						if (level == 2)
+						{
+							pFoot->Veterancy.SetVeteran();
+						}
+						else if (level >= 3)
+						{
+							pFoot->Veterancy.SetElite();
+						}
+						bool success;
+						auto pCell = MapClass::Instance->TryGetCellAt(selectedWP);
+						const CoordStruct locat = pCell->GetCoords();
+
+
+						auto unit = pFoot->GetTechnoType();
+						bool allowBridges = GroundType::Array[static_cast<int>(LandType::Clear)].Cost[static_cast<int>(unit->SpeedType)] > 0.0;
+						bool isBridge = allowBridges && pCell->ContainsBridge();
+						auto nCell = MapClass::Instance->NearByLocation(CellClass::Coord2Cell(locat),
+							unit->SpeedType, -1, unit->MovementZone, isBridge, 1, 1, true,
+							false, false, isBridge, CellStruct::Empty, false, false);
+
+						pCell = MapClass::Instance->TryGetCellAt(nCell);
+						CoordStruct loc = pCell->GetCoords();
+						if (!pCell->GetBuilding())
+						{
+							++Unsorted::IKnowWhatImDoing;
+							success = pFoot->Unlimbo(loc, DirType::NorthEast);
+							--Unsorted::IKnowWhatImDoing;
+							pTeam->AddMember(pFoot, true);
+
+						}
+						else
+						{
+							success = pFoot->Unlimbo(loc, DirType::NorthEast);
+							pTeam->AddMember(pFoot, true);
+						}
+						EffectAnimationCreate(loc, house);
+						AnimTypeClass* pAnimType = RulesClass::Instance->ChronoBlastDest;
+						if (AnimClass* const pAnim = GameCreate<AnimClass>(pAnimType, locat))
+						{
+							pAnim->Owner = pHouse;
+						}
+					}
+				}
+				else
+				{
+					return true;
+				}
+			}
+		}
+		pTeam->CurrentScript = GameCreate<ScriptClass>(pThis->TeamType->ScriptType);
+		pTeam->StepCompleted = true;
+	}
+	return true;
+}
+
+bool TActionExt::CreateTeamChronoToRandomUnit(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
+{
+	if (!pThis)
+		return true;
+	std::vector<CellStruct> c;
+	int j = 0;
+
+	if (RulesExt::Global()->AITargetTypesLists.size() > 0
+		&& RulesExt::Global()->AITargetTypesLists[pThis->Waypoint].size() > 0)
+	{
+		HouseClass* targetHouse = HouseClass::Array->GetItem(pThis->Param3);
+		for (auto const pTechno : *TechnoClass::Array())
+		{
+			if (pTechno->Owner == targetHouse)
+			{
+				for (auto item : RulesExt::Global()->AITargetTypesLists[pThis->Waypoint])
+				{
+					if (pTechno->GetTechnoType() == item && !pTechno->InLimbo && pTechno->IsOnMap && pTechno->IsAlive)
+					{
+						CellStruct cell = { pTechno->GetMapCoords().X ,pTechno->GetMapCoords().Y };
+						c.push_back(cell);
+						j++;
+
+					}
+				}
+			}
+		}
+	}
+	if (j == 0) return true;
+	int i = ScenarioClass::Instance->Random.RandomRanged(0, static_cast<int>(c.size())-1);
+	CreateTeamChronoW(pThis, pHouse, c[i]);
+	return true;
+}
+bool TActionExt::CreateTeamChrono(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
+{
+	auto& waypoints = ScenarioExt::Global()->Waypoints;
+	int nWaypoint = pThis->Waypoint;
+	CellStruct selectedWP;
+	if (nWaypoint >= 0 && waypoints.find(nWaypoint) != waypoints.end() && waypoints[nWaypoint].X && waypoints[nWaypoint].Y)
+	{
+		selectedWP = waypoints[nWaypoint];
+		CreateTeamChronoW(pThis, pHouse, selectedWP);
+	}
+	else
+	{
+		return true;
+	};
+}
+bool TActionExt::CreateTeamChronoRandom(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
+{
+	std::vector<TeamTypeClass*> teamtypes;
+	auto& waypoints = ScenarioExt::Global()->Waypoints;
+	for (auto pTeamType : *TeamTypeClass::Array())
+	{
+		if (pThis->Value == pTeamType->Group)
+		{
+			teamtypes.push_back(pTeamType);
+		}
+	}
+	CellStruct selectedWP;
+	int i = ScenarioClass::Instance->Random.RandomRanged(0, teamtypes.size() - 1);
+	pThis->TeamType = teamtypes[i];
+	selectedWP = waypoints[teamtypes[i]->Waypoint];
+	CreateTeamChronoW(pThis, pHouse, selectedWP);
+	return true;
+}
+bool TActionExt::SetTechlevel(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
+{
+	TechnoTypeClass* techtype= TechnoTypeClass::Find(pThis->Text);
+	techtype->TechLevel = pThis->Param3;
+	auto aHouse= HouseClass::Array->GetItem(pThis->Param4);
+		aHouse->RecheckTechTree = true;
+	return true;
+}
+bool TActionExt::SetTechSpeed(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
+{
+	TechnoTypeClass* techtype = TechnoTypeClass::Find(pThis->Text);
+	techtype->Speed = pThis->Param3;
+	return true;
+}
+bool TActionExt::SetTechWeapon(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
+{
+	auto spcialText = pThis->Text;
+	const int maxTokens = 2;
+	char result[maxTokens][32];
+	char delimiter = '@';
+	splitByAtSymbol(spcialText, delimiter, result, maxTokens);
+	const auto TechName = result[0];
+	const auto WeaponName = result[1];
+	TechnoTypeClass* techtype = TechnoTypeClass::Find(TechName);
+	WeaponTypeClass* wtype = WeaponTypeClass::Find(WeaponName);
+	techtype->Weapon[0].WeaponType = wtype;
+	return true;
+}
+bool TActionExt::SetWeaponRange(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
+{
+	WeaponTypeClass* wtype = WeaponTypeClass::Find(pThis->Text);
+	wtype->Range = pThis->Param3;
+	return true;
+}
+bool TActionExt::SetStrength(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
+{
+	TechnoTypeClass* techtype = TechnoTypeClass::Find(pThis->Text);
+
+	int y = techtype->Strength;
+	techtype->Strength = pThis->Param3;
+
+	for (auto const pTechno : *TechnoClass::Array())
+	{
+		if (pTechno->GetTechnoType() == techtype)
+		{
+			if (pThis->Param4 == 1)
+			{
+				pTechno->Health = pThis->Param3 * (pTechno->Health / y);
+				pTechno->EstimatedHealth = pTechno->Health;
+			}
+			else
+			{
+				if (pTechno->Health > pThis->Param3)
+				{
+					pTechno->Health = pThis->Param3;
+					pTechno->EstimatedHealth = pTechno->Health;
+				}
+			}
+		}
+	}
 	return true;
 }
 void clearFileContent(const std::string& filePath)
@@ -1392,6 +2441,68 @@ bool TActionExt::ClearFile(TActionClass* pThis, HouseClass* pHouse, ObjectClass*
 	catch (const std::exception& e)
 	{
 		return false;
+	}
+	return true;
+}
+bool TActionExt::BanSaving(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
+{
+	ScenarioExt::Global()->CanSaveOrLoad = false;
+	return true;
+}
+bool TActionExt::CanSaving(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
+{
+	ScenarioExt::Global()->CanSaveOrLoad = true;
+	return true;
+}
+bool TActionExt::SetTechLevelByString(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
+{
+	for (auto b : *TechnoTypeClass::Array)
+	{
+		std::string strA(b->ID);
+		std::string strB(pThis->Text);
+		size_t pos = strA.find(strB);
+		if (pos != std::string::npos)
+		{
+			b->TechLevel = pThis->Param3;
+		}
+	}
+	for (auto aHouse : *HouseClass::Array)
+	{
+		aHouse->RecheckTechTree = true;
+	}
+	return true;
+}
+bool TActionExt::NodesInitialize(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
+{
+	HouseClass* house = HouseClass::Array->GetItem(pThis->Value);
+	int i = 0;
+	for (auto node : house->Base.BaseNodes)
+	{
+		CellStruct cell = node.MapCoords;
+		bool findit = false;
+		for (auto building : *BuildingClass::Array)
+		{
+			if (building->Owner == house && building->Type->ArrayIndex == node.BuildingTypeIndex)
+			{
+				auto coord = building->GetMapCoords();
+				if (coord.X == node.MapCoords.X && coord.Y == node.MapCoords.Y)
+				{
+					house->Base.BaseNodes[i].Placed = true;
+					house->Base.BaseNodes[i].Attempts = 0;
+					findit = true;
+					break;
+
+				}
+			}
+			
+		}
+		if(!findit)
+		{
+			house->Base.BaseNodes[i].Placed = false;
+			house->Base.BaseNodes[i].Attempts = 0;
+		}
+		i++;
+		findit = true;
 	}
 	return true;
 }

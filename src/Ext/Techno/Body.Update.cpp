@@ -640,6 +640,11 @@ void TechnoExt::KillSelf(TechnoClass* pThis, AutoDeathBehavior deathOption, Anim
 {
 	if (isInLimbo)
 	{
+		if (auto const pFoot = abstract_cast<FootClass*>(pThis))
+		{
+			if (pFoot->ParasiteImUsing && pFoot->ParasiteImUsing->Victim)
+				pFoot->ParasiteImUsing->ExitUnit();
+		}
 		pThis->RegisterKill(pThis->Owner);
 		pThis->UnInit();
 		return;

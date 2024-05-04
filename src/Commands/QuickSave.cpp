@@ -4,6 +4,7 @@
 #include <HouseClass.h>
 #include <SessionClass.h>
 #include <Utilities/GeneralUtils.h>
+#include <Ext/Scenario/Body.h>
 
 const char* QuickSaveCommandClass::GetName() const
 {
@@ -37,6 +38,11 @@ void QuickSaveCommandClass::Execute(WWKey eInput) const
 		);
 	};
 
+	if (Phobos::Config::NoSaveLoad || !ScenarioExt::Global()->CanSaveOrLoad)
+	{
+		PrintMessage(StringTable::LoadString(GameStrings::TXT_ERROR_SAVING_GAME));
+		return;
+	}
 	if (SessionClass::IsSingleplayer())
 	{
 		char fName[0x80];

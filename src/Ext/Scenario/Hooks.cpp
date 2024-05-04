@@ -32,3 +32,12 @@ DEFINE_HOOK(0x5AE192, SelectNextMission, 0x6)
 
 	return 0;
 }
+DEFINE_HOOK(0x5CF04F, CheckMissionCount, 0x5)
+{
+	GET(int, number, EDI);
+	if (number > 10000)
+	{
+		return 0x5CF071;
+	}
+	return 0x5CF054;
+}

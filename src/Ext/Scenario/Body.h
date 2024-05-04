@@ -27,13 +27,14 @@ public:
 
 		bool ShowBriefing;
 		int BriefingTheme;
-
+		bool CanSaveOrLoad;
 		std::map<int, CellStruct> Waypoints;
 		std::map<int, ExtendedVariable> Variables[2]; // 0 for local, 1 for global
 		Nullable<PhobosFixedString<0x20>> NextMission;
 
 		ExtData(ScenarioClass* OwnerObject) : Extension<ScenarioClass>(OwnerObject)
 			, ShowBriefing { false }
+			, CanSaveOrLoad{true }
 			, BriefingTheme { -1 }
 			, Waypoints { }
 			, Variables { }

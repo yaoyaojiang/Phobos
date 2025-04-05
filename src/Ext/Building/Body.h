@@ -34,6 +34,7 @@ public:
 		BuildingClass* CurrentAirFactory;
 		int AccumulatedIncome;
 		OptionalStruct<int, true> CurrentLaserWeaponIndex;
+		BaseNodeClass* BaseNodeClass;
 
 		ExtData(BuildingClass* OwnerObject) : Extension<BuildingClass>(OwnerObject)
 			, TypeExtData { nullptr }
@@ -45,6 +46,7 @@ public:
 			, CurrentAirFactory { nullptr }
 			, AccumulatedIncome { 0 }
 			, CurrentLaserWeaponIndex {}
+			, BaseNodeClass{nullptr }
 		{ }
 
 		void DisplayIncomeString();

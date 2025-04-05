@@ -15,6 +15,7 @@
 #include <RulesClass.h>
 #include <SidebarClass.h>
 #include <Utilities/Constructs.h>
+#include <New/Entity/AreaClass.h>
 
 #include "Swizzle.h"
 #include "Debug.h"
@@ -511,6 +512,20 @@ namespace Savegame
 		}
 
 		bool WriteToStream(PhobosStreamWriter& Stm, TranslucencyLevel* const& Value) const
+		{
+			return Value->Save(Stm);
+		}
+	};
+	template <>
+	struct PhobosStreamObject<AreaClass*>  // 命名空间内特化
+	{
+		bool ReadFromStream(PhobosStreamReader& Stm, AreaClass*& Value, bool RegisterForChange) const
+		{
+			Value = new AreaClass();  // 调用默认构造函数
+			return Value->Load(Stm, RegisterForChange);
+		}
+
+		bool WriteToStream(PhobosStreamWriter& Stm, AreaClass* const& Value) const
 		{
 			return Value->Save(Stm);
 		}

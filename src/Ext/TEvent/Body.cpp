@@ -211,6 +211,8 @@ bool TEventExt::Execute(TEventClass* pThis, int iEvent, HouseClass* pHouse, Obje
 		return TEventExt::OuterVariableNotEqual(pThis);
 	case PhobosTriggerEvent::BuildingAttemptUp:
 		return TEventExt::BuildingAttemptUp(pThis,pHouse);
+	case PhobosTriggerEvent::AreaHasBuilding:
+		return TEventExt::AreaHasBuilding(pThis, pHouse);
 	default:
 		bHandled = false;
 		return true;
@@ -548,6 +550,30 @@ bool TEventExt::BuildingAttemptUp(TEventClass* pThis, HouseClass* pHouse)
 		return true;
 	}
 	else return false;
+}
+bool TEventExt::AreaHasBuilding(TEventClass* pThis, HouseClass* pHouse)
+{
+	auto pType = BuildingTypeClass::Find(pThis->String);
+	if (!pType)
+		return false;
+	auto arrays = AreaClass::Array;
+	if (arrays.size() <= 0) return false;
+	AreaClass* areas = AreaClass::Array[pThis->Value];
+	if (!areas)
+		return false;
+	for (const auto& area : areas->Cells)
+	{
+		CellClass* cell = MapClass::Instance->GetCellAt(area);
+		if (!cell) continue; // 防止空指针崩溃
+		BuildingClass* pBuilding = cell->GetBuilding();
+
+		if (!pBuilding) continue;
+		if (pBuilding->Owner == pHouse && pBuilding->Type == pType)
+		{
+			return true;
+		}
+	}
+	return false;
 }
 std::wstring replaceSubstringWithIntegerE(const std::wstring& wstr, const std::wstring& wss, int replacementValue)
 {

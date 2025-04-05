@@ -23,6 +23,7 @@
 #include <fstream>
 #include <algorithm>  
 #include <functional>  
+#include <New/Entity/AreaClass.h>
 
 //Static init
 TActionExt::ExtContainer TActionExt::ExtMap;
@@ -404,9 +405,25 @@ bool TActionExt::Execute(TActionClass* pThis, HouseClass* pHouse, ObjectClass* p
 	case PhobosTriggerAction::NodesInitialize:
 		return TActionExt::NodesInitialize(pThis, pHouse, pObject, pTrigger, location);
 	case PhobosTriggerAction::AddNodeOnWaypoint:
-			return TActionExt::AddNodeOnWaypoint(pThis, pHouse, pObject, pTrigger, location);
+		return TActionExt::AddNodeOnWaypoint(pThis, pHouse, pObject, pTrigger, location);
 	case PhobosTriggerAction::AddNodeOnWaypointWithIndex:
-			return TActionExt::AddNodeOnWaypointWithIndex(pThis, pHouse, pObject, pTrigger, location);
+		return TActionExt::AddNodeOnWaypointWithIndex(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::GetOutWWMessageBox:
+		return TActionExt::GetOutWWMessageBox(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::CreateAreaClass:
+		return TActionExt::CreateAreaClass(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::OutputAreaClass:
+		return TActionExt::OutputAreaClass(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::CreateAreaClassByquadrilateral:
+		return TActionExt::CreateAreaClassByquadrilateral(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::RemoveCellFromAreaClassByWaypoint:
+		return TActionExt::RemoveCellFromAreaClassByWaypoint(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::RemoveCellsFromAreaUnpassable:
+		return TActionExt::RemoveCellsFromAreaUnpassable(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::RemoveCellsFromAreaCannotBuild:
+		return TActionExt::RemoveCellsFromAreaCannotBuild(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::AddCellToAreaByWaypoint:
+		return TActionExt::AddCellToAreaByWaypoint(pThis, pHouse, pObject, pTrigger, location);
 	default:
 		bHandled = false;
 		return true;
@@ -2505,6 +2522,173 @@ bool TActionExt::NodesInitialize(TActionClass* pThis, HouseClass* pHouse, Object
 		findit = true;
 	}
 	return true;
+}
+bool TActionExt::CreateAreaClass(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
+{
+	std::vector<CellStruct> cells;
+	int waypoint1=pThis->Param3, waypoint2=pThis->Param4;
+	for (int i = waypoint1; i <= waypoint2; i++)
+	{
+		CellStruct coord = ScenarioClass::Instance()->GetWaypointCoords(i);
+		cells.push_back(coord);
+	}
+	auto newarea=new AreaClass(pThis->Value, cells);
+	AreaClass::Array.emplace_back(newarea);
+	auto areas= AreaClass::Array;
+	for (int i=0;i<areas.size();i++)
+	{
+		if (areas[i]->ID == pThis->Value)
+		{
+			break;
+		}
+	}
+	return true;
+}
+bool TActionExt::OutputAreaClass(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
+{
+	auto areas = AreaClass::Array;
+	for (int i = 0; i < areas.size(); i++)
+	{
+		if (areas[i]->ID == 0)
+		{
+			CRT::swprintf(Phobos::wideBuffer, L"%d", areas[i]->Cells.size());
+			MessageListClass::Instance->PrintMessage(Phobos::wideBuffer);
+			break;
+		}
+	}
+	return true;
+}
+bool TActionExt::CreateAreaClassByquadrilateral(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
+{
+	int way1 = pThis->Param3, way2 = pThis->Param4, way3 = pThis->Param5, way4 = pThis->Param6;
+	AreaClass* newarea = new AreaClass();
+	newarea->ID = pThis->Value;
+
+	newarea->FillQuadrilateral(way1,way2,way3,way4);
+	AreaClass::Array.emplace_back(newarea);
+	auto areas = AreaClass::Array;
+	for (int i = 0; i < areas.size(); i++)
+	{
+		if (areas[i]->ID == pThis->Value)
+		{
+			break;
+		}
+	}
+	return true;
+}
+bool TActionExt::RemoveCellFromAreaClassByWaypoint(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
+{
+	int way1 = pThis->Param3;
+	CellStruct coord = ScenarioClass::Instance()->GetWaypointCoords(way1);
+	auto areas = AreaClass::Array;
+	for (int i = 0; i < areas.size(); i++)
+	{
+		if (areas[i]->ID == pThis->Value)
+		{
+			auto& cells = areas[i]->Cells; 
+			cells.erase(
+				std::remove_if(
+					cells.begin(),
+					cells.end(),
+					[&coord](const CellStruct& cell)
+					{
+						return coord.X == cell.X && coord.Y == cell.Y;
+					}
+				),
+				cells.end()
+			);
+			break;
+		}
+	}
+	return true;
+}
+bool TActionExt::RemoveCellsFromAreaUnpassable(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
+{
+	auto areas = AreaClass::Array;
+	for (int i = 0; i < areas.size(); i++)
+	{
+		if (areas[i]->ID == pThis->Value)
+		{
+			
+			auto& cells = areas[i]->Cells;
+			cells.erase(
+				std::remove_if(
+					cells.begin(),
+					cells.end(),
+					[](const CellStruct& cell)
+					{
+						CellClass* pCell = MapClass::Instance->TryGetCellAt(cell);
+						return pCell && !pCell->IsClearToMove( // 检查是否不可通行
+							SpeedType::Foot,
+							false,    // 是否忽略步兵
+							false,    // 是否忽略载具
+							-1,       // 所属国家（-1 表示任意）
+							MovementZone::Infantry, // 移动区域类型
+							-1,       
+							false     
+						);
+					}
+				),
+				cells.end()
+			);
+			break;
+		}
+	}
+	return true;
+}
+bool TActionExt::RemoveCellsFromAreaCannotBuild(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
+{
+	auto areas = AreaClass::Array;
+	HouseClass* house= HouseClass::Array->GetItem(pThis->Param4);
+	BuildingTypeClass* pType = BuildingTypeClass::Find(pThis->Text);
+	for (int i = 0; i < areas.size(); i++)
+	{
+		if (areas[i]->ID == pThis->Param3)
+		{
+			auto& cells = areas[i]->Cells;
+
+			// 使用 erase-remove 惯用法删除无法建造的格子
+			cells.erase(
+				std::remove_if(
+					cells.begin(),
+					cells.end(),
+					[pType, house](CellStruct& cell)
+					{ // 参数改为引用
+						return !pType->CanPlaceHere(&cell, house); // 直接取引用地址
+					}
+				),
+				cells.end()
+			);
+			break;
+		}
+	}
+	return true;
+
+}
+bool TActionExt::AddCellToAreaByWaypoint(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
+{
+	auto areas = AreaClass::Array;
+	CellStruct coord = ScenarioClass::Instance()->GetWaypointCoords(pThis->Param3);
+	bool repeat = false;
+	for (int i = 0; i < areas.size(); i++)
+	{
+		if (areas[i]->ID == pThis->Value)
+		{
+			for (auto cell : areas[i]->Cells)
+			{
+				if (cell.X == coord.X && cell.Y == coord.Y)
+				{
+					repeat = true;
+					break;
+				}
+			}
+			if (!repeat)
+			{
+				areas[i]->Cells.push_back(coord);
+			}
+		}
+	}
+
 }
 // =============================
 // container

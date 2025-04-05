@@ -38,6 +38,7 @@
     <ClCompile Include="src\Ext\CaptureManager\Hooks.cpp" />
     <ClCompile Include="src\Ext\CaptureManager\Body.cpp" />
     <ClCompile Include="src\Ext\TAction\Body.New.cpp" />
+    <ClCompile Include="src\New\Entity\AreaClass.cpp" />
     <ClCompile Include="src\New\Entity\BannerClass.cpp" />
     <ClCompile Include="src\New\Type\BannerTypeClass.cpp" />
     <ClCompile Include="src\Ext\OverlayType\Body.cpp" />
@@ -190,6 +191,7 @@
     <ClInclude Include="src\Ext\Bullet\Trajectories\BombardTrajectory.h" />
     <ClInclude Include="src\Ext\Bullet\Trajectories\PhobosTrajectory.h" />
     <ClInclude Include="src\Ext\Bullet\Trajectories\StraightTrajectory.h" />
+    <ClInclude Include="src\New\Entity\AreaClass.h" />
     <ClInclude Include="src\New\Entity\BannerClass.h" />
     <ClInclude Include="src\New\Type\BannerTypeClass.h" />
     <ClInclude Include="src\Ext\OverlayType\Body.h" />

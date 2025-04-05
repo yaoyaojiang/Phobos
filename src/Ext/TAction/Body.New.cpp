@@ -8,6 +8,7 @@
 #include <Utilities/EnumFunctions.h>
 #include <MessageListClass.h>
 #include <random>
+#include <WWMessageBox.h>
 
 std::wstring replaceSubstringWithIntegerU(const std::wstring& wstr, const std::wstring& wss, int replacementValue)
 {
@@ -571,5 +572,43 @@ bool TActionExt::AddNodeOnWaypointWithIndex(TActionClass* pThis, HouseClass* pHo
 		house->Base.BaseNodes[i] = house->Base.BaseNodes[i - 1]; // 将元素后移一位
 	}
 	house->Base.BaseNodes[index] = *node;
+	return true;
+}
+bool TActionExt::GetOutWWMessageBox(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
+{
+	
+	while (true)
+	{
+		// WWMessageBox buttons look like below:
+		// Button1
+		// Button3
+		// Button2
+		// I prefer to put the loadgame to the center of them - secsome
+		// Did you??? NO, YOU DIDN'T. Bruhhhh
+		switch (WWMessageBox::Instance->Process(
+			GeneralUtils::LoadStringUnlessMissing("TXT_HARDCORE_NOSAVE", L"Testing"),
+			StringTable::LoadString(GameStrings::TXT_OK),
+			StringTable::LoadString(GameStrings::TXT_CANCEL),
+			StringTable::LoadString(GameStrings::TXT_CONTROL)))
+		{
+		case WWMessageBox::Result::Button3:
+			CRT::swprintf(Phobos::wideBuffer, L"%d", 3);
+			MessageListClass::Instance->PrintMessage(Phobos::wideBuffer);
+			break;
+		case WWMessageBox::Result::Button2:
+			CRT::swprintf(Phobos::wideBuffer, L"%d", 2);
+			MessageListClass::Instance->PrintMessage(Phobos::wideBuffer);
+			break;
+
+		case WWMessageBox::Result::Button1:
+			CRT::swprintf(Phobos::wideBuffer, L"%d", 1);
+			MessageListClass::Instance->PrintMessage(Phobos::wideBuffer);
+			break;
+		default:
+			break;
+		}
+
+		break;
+	}
 	return true;
 }

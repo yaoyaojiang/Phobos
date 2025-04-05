@@ -342,6 +342,7 @@ void BuildingExt::ExtData::Serialize(T& Stm)
 		.Process(this->AccumulatedIncome)
 		.Process(this->OwnerObject()->LightSource)
 		.Process(this->CurrentLaserWeaponIndex)
+		.Process(this->BaseNodeClass)
 		;
 }
 

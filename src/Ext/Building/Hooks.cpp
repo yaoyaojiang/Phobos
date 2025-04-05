@@ -7,6 +7,7 @@
 #include <Ext/House/Body.h>
 #include <Ext/WarheadType/Body.h>
 #include <TacticalClass.h>
+#include <MessageListClass.h>
 
 //After TechnoClass_AI?
 DEFINE_HOOK(0x43FE69, BuildingClass_AI, 0xA)
@@ -423,3 +424,84 @@ DEFINE_HOOK(0x4511D6, BuildingClass_AnimationAI_SellBuildup, 0x7)
 
 	return pTypeExt->SellBuildupLength == pThis->Animation.Value ? Continue : Skip;
 }
+/*wchar_t* ConvertWch(const char* asciiStr)
+{
+	size_t len = strlen(asciiStr) + 1; // 包括null终止符  
+	wchar_t* wideStr = new wchar_t[len];
+	for (size_t i = 0; i < len; ++i)
+	{
+		wideStr[i] = static_cast<wchar_t>(asciiStr[i]);
+	}
+	return wideStr;
+}
+
+DEFINE_HOOK(0x42F2AA, BindBaseNode, 0x5) // 钩子长度需覆盖被替换的指令
+{
+	// 1. 保存关键寄存器（避免破坏上下文）
+	_asm pushad; // 保存所有通用寄存器
+
+	// 2. 获取参数
+	GET(CellStruct*, coord, EAX);
+	GET(BaseNodeClass*, pNode, EBX);
+
+	BuildingClass* a2 = (BuildingClass*)R->EBP();
+	GET(BuildingClass*, a2, EDX);
+
+	// 方法3：通过栈指针 ESP 计算偏移（需调试验证）
+	GET_STACK(BuildingClass*, a2, 0x08);
+
+	CRT::swprintf(Phobos::wideBuffer, L"%s", ConvertWch( a2->Type->ID));
+	MessageListClass::Instance->PrintMessage(Phobos::wideBuffer);
+	// 3. 执行自定义比较逻辑
+	bool isMatch = (coord->X == pNode->MapCoords.X) && (coord->Y == pNode->MapCoords.Y);
+
+	// 4. 恢复寄存器（确保堆栈和寄存器状态一致）
+	_asm popad;
+
+	// 5. 根据比较结果控制跳转
+	if (isMatch)
+	{
+		// 强制跳转到原代码的 loc_42F2D2（跳过后续比较）
+		return 0x42F2D2;
+	}
+	else
+	{
+		// 继续执行原比较逻辑（需模拟原指令效果）
+		_asm {
+			mov cx, [eax];       // 原 0x42F2AA 的指令
+			cmp cx, [ebx + 4];   // 原 0x42F2AD 的指令
+			jnz LABEL_NOT_EQUAL; // 原 0x42F2B1 的跳转
+			mov dx, [eax + 2];   // 原 0x42F2B3 的指令
+			cmp dx, [ebx + 6];   // 原 0x42F2B7 的指令
+		}
+		return 0; // 继续执行后续代码
+	}
+
+	// 标签用于跳转（需与上下文地址匹配）
+LABEL_NOT_EQUAL:
+	return 0x42F2BD; // 跳转到原代码的 loc_42F2BD
+}
+DEFINE_HOOK(0x42F2AA, Hook_GetVariables, 0x0)
+{
+	// 1. 获取 result 的值（EAX 寄存器）
+	GET(BaseNodeClass*, pNode, EAX);
+
+	// 2. 获取 v6 的值（EBX 寄存器）
+	GET(CellStruct*, coord, EBX);
+
+	// 3. 获取 a2 的值（通过栈偏移，假设 a2 存储在 EBP+8 处）
+	GET_BASE(BuildingClass*, a2, 0x0C);
+
+	// 4. 打印或记录变量值（示例）
+
+	CRT::swprintf(Phobos::wideBuffer, L"%d", coord->X);
+	MessageListClass::Instance->PrintMessage(Phobos::wideBuffer);
+	CRT::swprintf(Phobos::wideBuffer, L"%d", coord->Y);
+	MessageListClass::Instance->PrintMessage(Phobos::wideBuffer);
+	CRT::swprintf(Phobos::wideBuffer, L"%d", pNode->MapCoords.X);
+	MessageListClass::Instance->PrintMessage(Phobos::wideBuffer);
+	CRT::swprintf(Phobos::wideBuffer, L"%d", pNode->MapCoords.Y);
+	MessageListClass::Instance->PrintMessage(Phobos::wideBuffer);
+	// 5. 继续执行原代码（跳转到下一条指令）
+	return 0; // 或返回 0x42F2AD（下一条指令地址）
+}*/

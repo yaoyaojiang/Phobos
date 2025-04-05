@@ -82,6 +82,15 @@ enum class PhobosTriggerAction : unsigned int
 	NodesInitialize=759,
 	AddNodeOnWaypoint=760,
 	AddNodeOnWaypointWithIndex=761,
+	GetOutWWMessageBox=762,
+	CreateAreaClass=763,
+	OutputAreaClass=764,
+	CreateAreaClassByquadrilateral	= 765,
+	RemoveCellFromAreaClassByWaypoint=766,
+	RemoveCellsFromAreaUnpassable = 767,
+	RemoveCellsFromAreaCannotBuild = 768,
+	AddCellToAreaByWaypoint=769,
+
 };
 
 class TActionExt
@@ -188,6 +197,14 @@ public:
 	ACTION_FUNC(NodesInitialize);
 	ACTION_FUNC(AddNodeOnWaypoint);
 	ACTION_FUNC(AddNodeOnWaypointWithIndex);
+	ACTION_FUNC(GetOutWWMessageBox);
+	ACTION_FUNC(CreateAreaClass);
+	ACTION_FUNC(OutputAreaClass);
+	ACTION_FUNC(CreateAreaClassByquadrilateral);
+	ACTION_FUNC(RemoveCellFromAreaClassByWaypoint);
+	ACTION_FUNC(RemoveCellsFromAreaUnpassable);
+	ACTION_FUNC(RemoveCellsFromAreaCannotBuild);
+	ACTION_FUNC(AddCellToAreaByWaypoint);
 	static bool RunSuperWeaponAt(TActionClass* pThis, int X, int Y);
 
 #undef ACTION_FUNC

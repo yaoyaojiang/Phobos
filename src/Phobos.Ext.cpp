@@ -30,6 +30,8 @@
 #include <Ext/WeaponType/Body.h>
 #include <New/Type/BannerTypeClass.h>
 #include <New/Entity/BannerClass.h>
+#include <New/Entity/AreaClass.h>
+
 
 #include <New/Type/RadTypeClass.h>
 #include <New/Type/LaserTrailTypeClass.h>
@@ -226,7 +228,8 @@ using PhobosTypeRegistry = TypeRegistry<
 	ShieldClass,
 	DigitalDisplayTypeClass,
 	BannerTypeClass,
-	BannerClass
+	BannerClass,
+	AreaClass
 	// other classes
 >;
 

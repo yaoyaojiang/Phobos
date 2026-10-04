@@ -4,7 +4,6 @@
 
 #include <CCINIClass.h>
 #include <SwizzleManagerClass.h>
-
 #include <string_view>
 #include "Debug.h"
 #include "Stream.h"
@@ -438,7 +437,10 @@ public:
 
 	void PrepareStream(base_type_ptr key, IStream* pStm)
 	{
-		//Debug::Log("[PrepareStream] Next is %p of type '%s'\n", key, this->Name);
+		/*if (this->Name == "TriggerClass")
+		{
+			Debug::Log("[PrepareStream] Next is %p of type '%s'\n", key, this->Name);
+		}*/
 
 		this->SavingObject = key;
 		this->SavingStream = pStm;
@@ -448,7 +450,11 @@ public:
 	{
 		if (this->SavingObject && this->SavingStream)
 		{
-			//Debug::Log("[SaveStatic] Saving object %p as '%s'\n", this->SavingObject, this->Name);
+		/*	if (this->Name == "TriggerClass")
+			{
+				Debug::Log("[SaveStatic] Saving object %p as '%s'\n", this->SavingObject, this->Name);
+
+			}*/
 			if (!this->Save(this->SavingObject, this->SavingStream))
 				Debug::FatalErrorAndExit("SaveStatic - Saving object %p as '%s' failed!\n", this->SavingObject, this->Name);
 		}
@@ -466,7 +472,10 @@ public:
 	{
 		if (this->SavingObject && this->SavingStream)
 		{
-			//Debug::Log("[LoadStatic] Loading object %p as '%s'\n", this->SavingObject, this->Name);
+			/*if (this->Name == "TriggerClass")
+			{
+			Debug::Log("[LoadStatic] Loading object %p as '%s'\n", this->SavingObject, this->Name);
+			}*/
 			if (!this->Load(this->SavingObject, this->SavingStream))
 				Debug::FatalErrorAndExit("LoadStatic - Loading object %p as '%s' failed!\n", this->SavingObject, this->Name);
 		}

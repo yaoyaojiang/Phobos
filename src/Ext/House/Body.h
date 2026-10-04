@@ -41,6 +41,12 @@ public:
 
 		int LastBuiltNavalVehicleType;
 		int ProducingNavalUnitTypeIndex;
+		std::map<TechnoTypeClass*,int> GrindedObjectTypes;
+		int GrindedObjectAmount;
+		int ProduceCashAmount;
+		std::map<InfantryTypeClass*, int> MutatedInfantryTypes;
+		int MutatedInfantryAmount;
+		bool IsNavalKickOutNode;
 
 		ExtData(HouseClass* OwnerObject) : Extension<HouseClass>(OwnerObject)
 			, PowerPlantEnhancers {}
@@ -59,6 +65,12 @@ public:
 			, RepairBaseNodes { false,false,false }
 			, LastBuiltNavalVehicleType { -1 }
 			, ProducingNavalUnitTypeIndex { -1 }
+			, GrindedObjectTypes { }
+			, GrindedObjectAmount { 0 }
+			, ProduceCashAmount{ 0 }
+			, MutatedInfantryTypes { }
+			, MutatedInfantryAmount { 0 }
+			, IsNavalKickOutNode{true }
 		{ }
 
 		bool OwnsLimboDeliveredBuilding(BuildingClass* pBuilding);
@@ -75,6 +87,10 @@ public:
 		virtual void InvalidatePointer(void* ptr, bool bRemoved) override;
 
 		void UpdateVehicleProduction();
+
+		void UpdateGrinderData(TechnoClass* pInfantry);
+		void UpdateProduceAmount(BuildingClass* pBuilding);
+		void UpdateMutatedData(InfantryClass* pInfantry);
 
 		virtual void LoadFromStream(PhobosStreamReader& Stm) override;
 		virtual void SaveToStream(PhobosStreamWriter& Stm) override;

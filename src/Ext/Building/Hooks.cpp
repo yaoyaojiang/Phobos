@@ -311,6 +311,8 @@ DEFINE_HOOK(0x44531F, BuildingClass_KickOutUnit_BuildingType_Phobos, 0xA)
 	return 0;
 }
 
+
+
 DEFINE_HOOK(0x443CCA, BuildingClass_KickOutUnit_AircraftType_Phobos, 0xA)
 {
 	GET(HouseClass*, pHouse, EDX);
@@ -318,6 +320,55 @@ DEFINE_HOOK(0x443CCA, BuildingClass_KickOutUnit_AircraftType_Phobos, 0xA)
 	HouseExt::ExtMap.Find(pHouse)->Factory_AircraftType = nullptr;
 
 	return 0;
+}
+
+// sub_45EE70 returns 2 (enemy unit blocking) and building is NOT Wall/Gate:
+// Original code zeroes MapCoords to (0,0). Instead, move node to end of list
+// and increment Attempts, giving MoveNodeByTech a chance to reposition it.
+DEFINE_HOOK(0x44552D, BuildingClass_KickOutUnit_NavalNodeMoveToEnd, 0xA)
+{
+	GET(BuildingClass*, pFactory, ESI);
+	GET(BaseNodeClass*, pNode, EBX);
+
+	HouseClass* pHouse = pFactory->Owner;
+	HouseExt::ExtData* pHouseExt = HouseExt::ExtMap.Find(pHouse);
+
+	/*"Debug::Log("[KickOutUnit] House='%s' IsNavalKickOutNode=%d TypeIdx=%d\n",
+		pHouse->PlainName, pHouseExt ? pHouseExt->IsNavalKickOutNode : -1, pNode->BuildingTypeIndex);*/
+
+	if (pHouseExt->IsNavalKickOutNode)
+	{
+		return 0;
+	}
+
+	pNode->Attempts++;
+
+	if (pNode->Attempts >= RulesClass::Instance->MaximumBuildingPlacementFailures)
+		return 0;
+
+	auto& baseNodes = pHouse->Base.BaseNodes;
+	int nCount = baseNodes.Count;
+
+	int nIdx = -1;
+	for (int i = 0; i < nCount; i++)
+	{
+		if (&baseNodes[i] == pNode)
+		{
+			nIdx = i;
+			break;
+		}
+	}
+
+	if (nIdx >= 0 && nIdx < nCount)
+	{
+		BaseNodeClass savedNode = *pNode;
+		for (int i = nIdx; i < nCount - 1; i++)
+			baseNodes[i] = baseNodes[i + 1];
+		baseNodes[nCount - 1] = savedNode;
+		//CRT::swprintf(Phobos::wideBuffer, L"%d,%d", nCount - 1,baseNodes[nCount - 1].BuildingTypeIndex);
+		//MessageListClass::Instance->PrintMessage(Phobos::wideBuffer);
+	}
+	return 0x4455A4;
 }
 
 // Ares didn't have something like 0x7397E4 in its UnitDelivery code
@@ -423,6 +474,23 @@ DEFINE_HOOK(0x4511D6, BuildingClass_AnimationAI_SellBuildup, 0x7)
 	auto const pTypeExt = BuildingTypeExt::ExtMap.Find(pThis->Type);
 
 	return pTypeExt->SellBuildupLength == pThis->Animation.Value ? Continue : Skip;
+}
+//跳过船坞节点的NodeLogic_1F0
+DEFINE_HOOK(0x450220, BuildingClass_Update_Factory_SkipNavalNodeLogicReset, 0x6)
+{
+	GET(HouseClass*, pHouse, EAX);
+
+	if (pHouse)
+	{
+		HouseExt::ExtData* pHouseExt = HouseExt::ExtMap.Find(pHouse);
+		if (pHouseExt && !pHouseExt->IsNavalKickOutNode)
+		{
+			Debug::Log("NodeLogic_1F0_Passed.\n");
+			return 0x450226;
+		}
+	}
+
+	return 0;
 }
 /*wchar_t* ConvertWch(const char* asciiStr)
 {

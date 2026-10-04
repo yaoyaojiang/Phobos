@@ -6,6 +6,8 @@
 
 #include <Ext/Rules/Body.h>
 #include <Utilities/Macro.h>
+#include <Ext/Scenario/Body.h>
+#include <MessageListClass.h>
 
 namespace TimerValueTemp
 {
@@ -19,7 +21,6 @@ DEFINE_HOOK(0x6D4B50, PrintTimerOnTactical_Start, 0x6)
 
 	REF_STACK(int, value, STACK_OFFSET(0, 0x4));
 	TimerValueTemp::oldValue = value;
-
 	if (Phobos::Config::RealTimeTimers_Adaptive
 		|| GameOptionsClass::Instance->GameSpeed == 0
 		|| (Phobos::Misc::CustomGS && !SessionClass::IsMultiplayer()))
@@ -50,7 +51,6 @@ DEFINE_HOOK(0x6D4B50, PrintTimerOnTactical_Start, 0x6)
 	default:
 		break;
 	}
-
 	return 0;
 }
 

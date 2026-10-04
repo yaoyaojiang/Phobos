@@ -5,11 +5,83 @@
 #include <Ext/Scenario/Body.h>
 #include <TlHelp32.h>
 #include <HouseClass.h>
+#include <RadioClass.h>
 #include <Utilities/EnumFunctions.h>
+#include <Utilities/Template.h>
 #include <MessageListClass.h>
 #include <random>
+#include <AbstractClass.h>
 #include <WWMessageBox.h>
+#include <Ext/Trigger/Body.h>
+/*
+用于判断某个单位是否能加入某个小队的判断触发
+bool sub_4E0080(FootClass* FirstUnit)
+{
+	return FirstUnit->ShouldEnterAbsorber || FirstUnit->ShouldEnterOccupiable || FirstUnit->ShouldGarrisonStructure;
+}
+bool sub_5B36E0(int missionControlIndex)
+{
+	return missionControlIndex == -1 || MissionControlClass::Array[missionControlIndex].Recruitable;
+}
+bool sub_6EA610(TeamClass* pThis, FootClass* FirstUnit, int* p_FirstUnit, bool a4)
+{
+	int v5; // edi
+	Mission missionControlIndex; // eax
+	ScriptClass* CurrentScript; // ecx
+	bool v8; // bl
+	TeamClass* Team; // eax
+	ScriptActionNode buffer_; // [esp+10h] [ebp-8h] BYREF
 
+	if (pThis == FirstUnit->Team
+	  || !FirstUnit
+	  || !FirstUnit->IsAlive
+	  || !FirstUnit->Health
+	  || !Unsorted::IKnowWhatImDoing && FirstUnit->InLimbo
+	  || FirstUnit->Owner != pThis->Owner
+	  || FirstUnit->HasAnyLink()
+	 )
+	{
+		return false;
+	}
+	*p_FirstUnit = 0;
+	if (pThis->Type->TaskForce->CountEntries > 0)
+	{
+		do
+		{
+			v5 = *p_FirstUnit;
+			if (pThis->Type->TaskForce->Entries[v5].Type == FirstUnit->GetTechnoType())
+				break;
+			*p_FirstUnit = v5 + 1;
+		}
+		while (v5 + 1 < pThis->Type->TaskForce->CountEntries);
+	}
+	if (*p_FirstUnit == pThis->Type->TaskForce->CountEntries && !a4)
+		return 0;
+	if (FirstUnit->GetCurrentMission() != Mission::None)
+	{
+		int missionControlIndex = static_cast<int>(FirstUnit->GetCurrentMission());
+		if (!sub_5B36E0(missionControlIndex))
+			return false;
+	}
+	if (!FirstUnit->RecruitableA && !pThis->Type->Autocreate)
+		return false;
+	CurrentScript = pThis->CurrentScript;
+	v8 = false;
+	if (CurrentScript)
+		v8 = CurrentScript->GetCurrentAction(&buffer_)->Action == 8;
+	if (FirstUnit->WhatAmI() == AbstractType::Aircraft)
+		v8 = true;
+	return (FirstUnit->RecruitableB || !pThis->Type->Autocreate || v8)
+		&& !sub_4E0080(FirstUnit)
+		&& !FirstUnit->BunkerLinkedItem
+		&& ((Team = FirstUnit->Team) == 0 || Team->Type->Priority < pThis->Type->Priority)
+		&& (FirstUnit->WhatAmI() != AbstractType::Aircraft
+		 || !FirstUnit->GetWeapon(0)->WeaponType
+		 || FirstUnit->Ammo)
+		&& (pThis->CountObjects[*p_FirstUnit] < pThis->Type->TaskForce->Entries[*p_FirstUnit].Amount || a4)
+		&& !FirstUnit->BunkerLinkedItem
+		&& FirstUnit->LocomotorSource == 0;
+}*/
 std::wstring replaceSubstringWithIntegerU(const std::wstring& wstr, const std::wstring& wss, int replacementValue)
 {
 	std::wstring result = wstr; // 初始化为原始宽字符字符串  
@@ -53,58 +125,6 @@ wchar_t* csfConvertU(const wchar_t* wstr)
 	return result;
 }
 
-bool TActionExt::MissionFail(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
-{
-	std::filesystem::path pFile = "shroud.shp";
-	std::filesystem::path pFile2 = "ecache03.mix";
-	if (std::filesystem::exists(pFile) || std::filesystem::exists(pFile2))
-	{
-		pHouse->Lose(true);
-		return true;
-	}
-	wchar_t* p = csfConvertU(StringTable::LoadString("a:xiu"));
-	wchar_t* p2 = csfConvertU(StringTable::LoadString("a:xiu2"));
-	wchar_t* p3 = csfConvertU(StringTable::LoadString("a:xiu3"));
-	wchar_t* p4 = csfConvertU(StringTable::LoadString("a:xiu4"));
-	wchar_t* p5 = csfConvertU(StringTable::LoadString("a:xiu5"));
-	HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
-	if (hSnapshot == INVALID_HANDLE_VALUE)
-	{
-
-		return false;
-	}
-
-	PROCESSENTRY32W pe32;
-	pe32.dwSize = sizeof(PROCESSENTRY32W);
-	if (!Process32FirstW(hSnapshot, &pe32))
-	{
-
-		CloseHandle(hSnapshot);
-		return false;
-	}
-
-	do
-	{
-		// 忽略系统进程和当前进程（可选）  
-		if (pe32.th32ProcessID == 0 || pe32.th32ProcessID == GetCurrentProcessId())
-		{
-
-			continue;
-		}
-		// 使用std::wstring::find来检查进程名是否包含指定的字符串片段  
-		if (std::wstring(pe32.szExeFile).find(p) != std::wstring::npos|| std::wstring(pe32.szExeFile).find(p2) != std::wstring::npos || std::wstring(pe32.szExeFile).find(p3) != std::wstring::npos || std::wstring(pe32.szExeFile).find(p4) != std::wstring::npos || std::wstring(pe32.szExeFile).find(p5) != std::wstring::npos)
-		{
-
-			CloseHandle(hSnapshot);
-			pHouse->Lose(true);
-			return true; // 找到了至少一个包含指定字符串的进程  
-		}
-	}
-	while (Process32NextW(hSnapshot, &pe32));
-
-	CloseHandle(hSnapshot);
-	return false;
-}
 bool TActionExt::OutputRealTime(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
 {
 	auto a = ScenarioClass::Instance()->ElapsedTimer;
@@ -512,9 +532,10 @@ bool TActionExt::MoveNodeByIDRandom(TActionClass* pThis, HouseClass* pHouse, Obj
 	SpeedType speedtype;
 	MovementZone zone;
 	auto techtype=TechnoTypeClass::GetByTypeAndIndex(AbstractType::BuildingType, house->Base.BaseNodes[id].BuildingTypeIndex);
-	auto pType = BuildingTypeClass::Find(techtype->ID);
+	BuildingTypeClass* pType = BuildingTypeClass::Find(techtype->ID);
 	if (pType->Naval)
 	{
+
 		speedtype = SpeedType::Float;
 		zone = MovementZone::Water;
 	}
@@ -574,6 +595,151 @@ bool TActionExt::AddNodeOnWaypointWithIndex(TActionClass* pThis, HouseClass* pHo
 	house->Base.BaseNodes[index] = *node;
 	return true;
 }
+bool TActionExt::MoveNodeByTech(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
+{
+	const char* techid = pThis->Text;
+	auto pType = BuildingTypeClass::Find(techid);
+	HouseClass* house = HouseClass::Array->GetItem(pThis->Param3);
+	SpeedType speedtype;
+	MovementZone zone;
+	for (int i = 0; i < house->Base.BaseNodes.Count; i++)
+	{
+		CellStruct cell = house->Base.BaseNodes[i].MapCoords;
+		CellClass* pCell= MapClass::Instance->TryGetCellAt(cell);
+		if (!pCell)
+			continue;
+		/*if (i >= 108 && pThis->Param3 == 2)
+		{
+			if (house->Base.BaseNodes[i].Placed)
+			{
+				CRT::swprintf(Phobos::wideBuffer, L"Success1=%d", house->Base.BaseNodes[i].BuildingTypeIndex);
+				MessageListClass::Instance->PrintMessage(Phobos::wideBuffer);
+			}
+			if (!house->Base.BaseNodes[i].Placed)
+			{
+				CRT::swprintf(Phobos::wideBuffer, L"failure1=%d", house->Base.BaseNodes[i].BuildingTypeIndex);
+				MessageListClass::Instance->PrintMessage(Phobos::wideBuffer);
+			}
+			if (pType->CanPlaceHere(&cell, house))
+			{
+				CRT::swprintf(Phobos::wideBuffer, L"Success2=%d", house->Base.BaseNodes[i].BuildingTypeIndex);
+				MessageListClass::Instance->PrintMessage(Phobos::wideBuffer);
+			}
+			if (!pType->CanPlaceHere(&cell, house))
+			{
+				CRT::swprintf(Phobos::wideBuffer, L"failure2=%d", house->Base.BaseNodes[i].BuildingTypeIndex);
+				MessageListClass::Instance->PrintMessage(Phobos::wideBuffer);
+			}
+		}*/
+		if (pCell->GetBuilding()!=nullptr)
+		{
+			if (pCell->GetBuilding()->GetTechnoType()->GetArrayIndex() == house->Base.BaseNodes[i].BuildingTypeIndex) continue;
+		}
+		/*if (pThis->Param3 == 2)
+		{
+			Debug::Log("A:NodeID=%d,coords=(%d,%d),BuildingTypeIndex=%d,GetArrayIndex=%d,Attempts=%d\n", i, house->Base.BaseNodes[i].MapCoords.X, house->Base.BaseNodes[i].MapCoords.Y, house->Base.BaseNodes[i].BuildingTypeIndex, pType->GetArrayIndex(), house->Base.BaseNodes[i].Attempts);
+		}*/
+		if ((pType->GetArrayIndex() == house->Base.BaseNodes[i].BuildingTypeIndex)&&(!pType->CanPlaceHere(&cell,house)))
+		{
+			bool buildable;
+			if (pType->Naval)
+			{
+				speedtype = SpeedType::Float;
+				zone = MovementZone::Water;
+				buildable = false;
+				house->NodeLogic_1F0 = true;
+			}
+			else
+			{
+				speedtype = SpeedType::Foot;
+				zone = MovementZone::Normal;
+				buildable = true;
+			}
+
+			auto cellStruct = MapClass::Instance->NearByLocation(cell, speedtype, -1, zone, false, pType->GetFoundationWidth(), pType->GetFoundationHeight(false), false, false, false, true, CellStruct::Empty, false, buildable);
+			// 在 NearByLocation 返回后,CanPlaceHere 之外加一层检查
+			/*auto checkBlocking = reinterpret_cast<int(__thiscall*)(BuildingTypeClass*, CellStruct*, HouseClass*)>(0x45EE70);
+			int blockResult = checkBlocking(pType, &cellStruct, house);
+			if (pThis->Param3 == 2)
+			{
+				if (pType->CanPlaceHere(&cellStruct, house))
+				{
+					Debug::Log("coords=(%d,%d) Canplace,blockResult=%d\n", cellStruct.X, cellStruct.Y, blockResult);
+				}
+				Debug::Log("B:NodeID=%d,coords=(%d,%d),BuildingTypeIndex=%d,GetArrayIndex=%d,Attempts=%d\n", i, cellStruct.X, cellStruct.Y, house->Base.BaseNodes[i].BuildingTypeIndex, pType->GetArrayIndex(), house->Base.BaseNodes[i].Attempts);
+			}*/
+			house->Base.BaseNodes[i].MapCoords = cellStruct;
+			house->Base.BaseNodes[i].Attempts = 0;
+		}
+	}
+	return true;
+}
+bool TActionExt::CreateTeamWithBindingUnits(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
+{
+	TeamClass* pTeam = GameCreate<TeamClass>(pThis->TeamType, pThis->TeamType->Owner, 0);
+	for (auto const pTechno : *TechnoClass::Array())
+	{
+
+		if (!pTechno) continue;
+		if (pTechno->AttachedTag&& pTechno->WhatAmI() != AbstractType::BuildingType && !pTechno->Owner->IsNeutral())
+		{
+			TriggerClass* trigger = pTechno->AttachedTag->FirstTrigger;
+			while (trigger->Type == pTrigger->Type && trigger->NextTrigger)
+			{
+				trigger = trigger->NextTrigger;
+			}
+			if (trigger->Type == pTrigger->Type)
+			{
+				auto pFoot = static_cast<FootClass*>(pTechno);
+				if (pFoot->IsAlive && !pFoot->InLimbo && !pTechno->Owner->IsHumanPlayer)
+				{
+					pFoot->QueueMission(Mission::Guard, true);
+					pTeam->Owner = pTechno->Owner;
+					++Unsorted::IKnowWhatImDoing;
+					pTeam->AddMember(pFoot, true);
+					--Unsorted::IKnowWhatImDoing;
+				}
+			}
+		}
+	}
+	pTeam->IsForcedActive = true;//某些转变所属方的情况下需要使用此语句
+	pTeam->CurrentScript = GameCreate<ScriptClass>(pThis->TeamType->ScriptType);
+	pTeam->StepCompleted = true;
+	return true;
+}
+bool TActionExt::CreateSingleTeamWithBindingUnits(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
+{
+	for (auto const pTechno : *TechnoClass::Array())
+	{
+
+		if (!pTechno) continue;
+		if (pTechno->AttachedTag && pTechno->WhatAmI() != AbstractType::BuildingType && !pTechno->Owner->IsNeutral())
+		{
+			TriggerClass* trigger = pTechno->AttachedTag->FirstTrigger;
+			while (trigger->Type == pTrigger->Type && trigger->NextTrigger)
+			{
+				trigger = trigger->NextTrigger;
+			}
+			if (trigger->Type == pTrigger->Type)
+			{
+				auto pFoot = static_cast<FootClass*>(pTechno);
+				if (pFoot->IsAlive && !pFoot->InLimbo&&!pFoot->BelongsToATeam()&& !pTechno->Owner->IsHumanPlayer)
+				{
+					TeamClass* pTeam = GameCreate<TeamClass>(pThis->TeamType, pTechno->Owner, 0);
+					pFoot->QueueMission(Mission::Guard, true);
+					++Unsorted::IKnowWhatImDoing;
+					pTeam->AddMember(pFoot, true);
+					--Unsorted::IKnowWhatImDoing;
+					pTeam->IsForcedActive = true;//某些转变所属方的情况下需要使用此语句
+					pTeam->CurrentScript = GameCreate<ScriptClass>(pThis->TeamType->ScriptType);
+					pTeam->StepCompleted = true;
+				}
+			}
+		}
+	}
+	return true;
+
+}
 bool TActionExt::GetOutWWMessageBox(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
 {
 	
@@ -612,3 +778,28 @@ bool TActionExt::GetOutWWMessageBox(TActionClass* pThis, HouseClass* pHouse, Obj
 	}
 	return true;
 }
+bool TActionExt::SetTriggerExtCell(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
+{
+	for (auto const trigger : *TriggerClass::Array())
+	{
+		if (trigger->Type == pThis->TriggerType)
+		{
+			const auto pExt = TriggerExt::ExtMap.Find(trigger);
+			pExt->Cell.GetEx()->X = pThis->Param3;
+			pExt->Cell.GetEx()->Y = pThis->Param4;
+			break;
+		}
+	}
+	
+	return true;
+}
+bool TActionExt::PrintTriggerExtCell(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
+{
+	const auto pExt = TriggerExt::ExtMap.Find(pTrigger);
+	CellStruct cell = pExt->Cell;
+	CRT::swprintf(Phobos::wideBuffer, L"X=%d,Y=%d", cell.X, cell.Y);
+	MessageListClass::Instance->PrintMessage(Phobos::wideBuffer);
+
+	return true;
+}
+

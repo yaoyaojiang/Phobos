@@ -24,6 +24,10 @@
 #include <algorithm>  
 #include <functional>  
 #include <New/Entity/AreaClass.h>
+#include <unordered_set>
+#include <random>
+#include <Ext/House/Body.h>
+#include <Ext/Cell/Body.h>
 
 //Static init
 TActionExt::ExtContainer TActionExt::ExtMap;
@@ -107,7 +111,18 @@ void splitByAtSymbol(const char* str, char delim, char result[][32], int resultS
 		strncpy(result[index], tokenStart, strlen(tokenStart) + 1); // 包括null终止符  
 	}
 }
+bool IsUnitAvailable(TechnoClass* pTechno, bool checkIfInTransportOrAbsorbed)
+{
+	if (!pTechno)
+		return false;
 
+	bool isAvailable = pTechno->IsAlive && pTechno->Health > 0 && !pTechno->InLimbo && pTechno->IsOnMap;
+
+	if (checkIfInTransportOrAbsorbed)
+		isAvailable &= !pTechno->Absorbed && !pTechno->Transporter;
+
+	return isAvailable;
+}
 void splitByAtSymbolLarge(const char* str, char delim, char result[][120], int resultSize)
 {
 	int index = 0; // 结果数组的索引  
@@ -362,8 +377,6 @@ bool TActionExt::Execute(TActionClass* pThis, HouseClass* pHouse, ObjectClass* p
 		return TActionExt::RunSuperWeaponAtRandomUnit2(pThis, pHouse, pObject, pTrigger, location);
 	case PhobosTriggerAction::CreateTeamChronoRandom:
 		return TActionExt::CreateTeamChronoRandom(pThis, pHouse, pObject, pTrigger, location);
-	case PhobosTriggerAction::MissionFail:
-		return TActionExt::MissionFail(pThis, pHouse, pObject, pTrigger, location);
 	case PhobosTriggerAction::BanSaving:
 		return TActionExt::BanSaving(pThis, pHouse, pObject, pTrigger, location);
 	case PhobosTriggerAction::CanSaving:
@@ -424,6 +437,40 @@ bool TActionExt::Execute(TActionClass* pThis, HouseClass* pHouse, ObjectClass* p
 		return TActionExt::RemoveCellsFromAreaCannotBuild(pThis, pHouse, pObject, pTrigger, location);
 	case PhobosTriggerAction::AddCellToAreaByWaypoint:
 		return TActionExt::AddCellToAreaByWaypoint(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::AddNodesOnArea:
+		return TActionExt::AddNodesOnArea(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::MoveNodeByTech:
+		return TActionExt::MoveNodeByTech(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::SetAreaCaptureHouse:
+		return TActionExt::SetAreaCaptureHouse(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::SetTechnoTypeCloak:
+		return TActionExt::SetTechnoTypeCloak(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::CreateAreaClassByCellTags:
+		return TActionExt::CreateAreaClassByCellTags(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::SetTriggerExtCell:
+		return TActionExt::SetTriggerExtCell(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::PrintTriggerExtCell:
+		return TActionExt::PrintTriggerExtCell(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::CreateTeamWithBindingUnits:
+		return TActionExt::CreateTeamWithBindingUnits(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::CreateSingleTeamWithBindingUnits:
+		return TActionExt::CreateSingleTeamWithBindingUnits(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::SetTechCapturable:
+		return TActionExt::SetTechCapturable(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::CheckCheating:
+		return TActionExt::CheckCheating(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::CreateCheatDetectionThread:
+		return TActionExt::CreateCheatDetectionThread(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::StartCheatThread:
+		return TActionExt::StartCheatThread(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::StopCheatDetectionThread:
+		return TActionExt::StopCheatDetectionThread(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::ChangeAreaObjectHouses:
+		return TActionExt::ChangeAreaObjectHouses(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::BannerSort:
+		return TActionExt::BannerSort(pThis, pHouse, pObject, pTrigger, location);
+	case PhobosTriggerAction::UpdateAngerLevel:
+		return TActionExt::UpdateAngerLevel(pThis, pHouse, pObject, pTrigger, location);
 	default:
 		bHandled = false;
 		return true;
@@ -440,7 +487,10 @@ bool TActionExt::Execute(TActionClass* pThis, HouseClass* pHouse, ObjectClass* p
 * 当模式为2，则将参数1表示的所属方正在运行中的超级武器剩余时间赋值给变量，其中超级武器的序号为参数2。
 * 当模式为3，则将参数1表示的所属方当前拥有的某科技类型的数量赋值给变量。参数2表示指定科技的类型（0步兵、1交通工具、2飞行器、3建筑）
 * ，参数3表示指定科技在对应rules注册序列中的顺序（不是序号，而是该科技在其列表中排第几个）减1。
-* 当模式为4，则将全局计时器剩余时间复制给变量。
+* 当模式为4，则将全局计时器剩余时间赋值给变量。
+* 当模式为5，则将参数1表示的所属方使用回收站回收的总金额赋值给变量。
+* 当模式为6，则将参数1表示的区域中占据方的单位和建筑总数赋值给变量。
+* 当模式为7，则将参数1表示的所属方通过油井获得的金额总数赋值给变量。
  */
 bool TActionExt::VariableAssignment(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
 {
@@ -523,10 +573,42 @@ bool TActionExt::VariableAssignment(TActionClass* pThis, HouseClass* pHouse, Obj
 	    		nCurrentValue = timer.GetTimeLeft();
 	    	}
     	}
+		else if (mode == 5)
+		{
+			HouseClass* foundHouse = HouseClass::Array->GetItem(pThis->Param4);
+			if (!foundHouse)
+				return false;
+			auto pExt = HouseExt::ExtMap.Find(foundHouse);
+			nCurrentValue = pExt->GrindedObjectAmount;
+		}
+		else if (mode == 6)
+		{
+			auto areas = AreaClass::Array;
+			AreaClass* targetArea = nullptr;
+			for (auto& area : areas)
+			{
+				if (area->ID == pThis->Param4)
+				{
+					targetArea = area;
+					break;
+				}
+			}
+			if (!targetArea) return false;
+			nCurrentValue = targetArea->CaptureObjectNumber;
+		}
+		else if (mode == 7)
+		{
+			HouseClass* foundHouse = HouseClass::Array->GetItem(pThis->Param4);
+			if (!foundHouse)
+				return false;
+			auto pExt = HouseExt::ExtMap.Find(foundHouse);
+			nCurrentValue = pExt->ProduceCashAmount;
+		}
     	TagClass::NotifyLocalChanged(pThis->Value);
     }
 	return true;
 }
+
 /*TeamClass* pTeam = pTechno->OldTeam;
 		if (pTeam)
 		{
@@ -546,7 +628,9 @@ bool TActionExt::VariableAssignment(TActionClass* pThis, HouseClass* pHouse, Obj
 bool TActionExt::FreeControlledUnit(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
 {	;
 	for (auto const pTechno : *TechnoClass::Array())
-	{		
+	{
+
+		if (!pTechno) continue;
 		if (pTechno->AttachedTag)
 		{
 			TriggerClass* trigger= pTechno->AttachedTag->FirstTrigger;
@@ -1226,12 +1310,17 @@ bool TActionExt::RunSuperWeaponAtRandomUnit(TActionClass* pThis, HouseClass* pHo
 		HouseClass* targetHouse = HouseClass::Array->GetItem(pThis->Param5);
 		for (auto const pTechno : *TechnoClass::Array())
 		{
+			if (!pTechno)
+				continue;
 			if (pTechno->Owner == targetHouse)
 			{
 				for (auto item : RulesExt::Global()->AITargetTypesLists[pThis->Value])
 				{
 					if (pTechno->GetTechnoType() == item&&!pTechno->InLimbo&&pTechno->IsOnMap&&pTechno->IsAlive)
 					{
+
+						CRT::swprintf(Phobos::wideBuffer, L"%s", pTechno->GetTechnoType()->Name);
+						MessageListClass::Instance->PrintMessage(Phobos::wideBuffer);
 						if (pThis->Param6 == 0)
 						{
 							CellStruct cell = { pTechno->GetMapCoords().X ,pTechno->GetMapCoords().Y };
@@ -1303,6 +1392,8 @@ bool TActionExt::RunSuperWeaponAtRandomUnit2(TActionClass* pThis, HouseClass* pH
 		HouseClass* targetHouse = HouseClass::Array->GetItem(pThis->Param5);
 		for (auto const pTechno : *TechnoClass::Array())
 		{
+
+			if (!pTechno) continue;
 			if (pTechno->Owner == targetHouse)
 			{
 				for (auto item : RulesExt::Global()->AITargetTypesLists[pThis->Value])
@@ -1547,6 +1638,7 @@ bool TActionExt::UpdateMessageBuffer(TActionClass* pThis, HouseClass* pHouse, Ob
 	std::wmemset(MessageListClass::Instance->MessageBuffers[pThis->Param3], 0, 162);
 	for (int j = 0; j < len; j++)
 		MessageListClass::Instance->MessageBuffers[pThis->Param3][j] = pMessage[j];
+	delete[] pMessage;
 	return true;
 }
 bool TActionExt::ToggleMCVRedeploy(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
@@ -1576,6 +1668,7 @@ bool TActionExt::BindTeamMemberToTag(TActionClass* pThis, HouseClass* pHouse, Ob
 	}
 	for (auto const pTechno : *TechnoClass::Array())
 	{
+		if (!pTechno) continue;
 		if (pTechno->WhatAmI() != AbstractType::BuildingType)
 		{
 			if (FootClass* pFoot = abstract_cast<FootClass*>(pTechno))
@@ -1618,7 +1711,9 @@ bool TActionExt::BindTechnologyToTag(TActionClass* pThis, HouseClass* pHouse, Ob
 		}
 	}
 	for (auto const pTechno : *TechnoClass::Array())
-	{		
+	{
+
+		if (!pTechno) continue;
 		if (pTechno->Owner==foundHouse&&strcmp(TechName, pTechno->get_ID()) == 0)
 		{
 			pTechno->AttachTrigger(tag);
@@ -1658,7 +1753,7 @@ void CreateOrReplaceBanner(TActionClass* pTAction, bool isGlobal)
 				pTAction->Param6,
 				isGlobal
 				)
-		); 
+		);
 	}
 }
 
@@ -1682,7 +1777,94 @@ bool TActionExt::DeleteBanner(TActionClass* pThis, HouseClass* pHouse, ObjectCla
 
 	return true;
 }
-
+/*bool TActionExt::BannerSort(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
+{
+	// 1. 收集所有 CSF 类型的 Banner，并记录对应 BannerTypeClass 下标
+	std::vector<std::pair<int, BannerClass*>> csfBanners;
+	for (const auto& pBanner : BannerClass::Array)
+	{
+		if (!pBanner->Type || pBanner->Type->BannerType != BannerType::CSF)
+			continue;
+		int typeIndex = 0;
+		for (size_t i = 0; i < BannerTypeClass::Array.size(); ++i)
+		{
+			if (BannerTypeClass::Array[i].get() == pBanner->Type)
+			{
+				typeIndex = static_cast<int>(i);
+				break;
+			}
+		}
+		csfBanners.emplace_back(typeIndex, pBanner.get());
+	}
+	if (csfBanners.empty())
+		return false;
+	// 2. 按 BannerTypeClass 数组顺序排序；同类型再按 Banner ID 排序
+	std::stable_sort(csfBanners.begin(), csfBanners.end(),
+		[](const std::pair<int, BannerClass*>& lhs, const std::pair<int, BannerClass*>& rhs)
+		{
+			if (lhs.first != rhs.first)
+				return lhs.first < rhs.first;
+			return lhs.second->ID < rhs.second->ID;
+		});
+	const int screenHeight = DSurface::Composite->Height;
+	const int count = static_cast<int>(csfBanners.size());
+	// 行高：5px，间距非常紧凑
+	const int lineHeight = 5;
+	// 底部安全区：20px，防止最下面一条被工具栏盖住
+	const int bottomMargin = 20;
+	// 3. 先算出最上面一条的起始 Y
+	int startY = screenHeight - bottomMargin - count * lineHeight;
+	// 如果 Banner 太多导致超出屏幕顶部，就从屏幕顶部开始排
+	if (startY < 0)
+		startY = 0;
+	// 4. 依次向下排列，水平靠左
+	for (int i = 0; i < count; ++i)
+	{
+		int yPixel = startY + i * lineHeight;
+		csfBanners[i].second->Position.X = 0;
+		csfBanners[i].second->Position.Y = static_cast<int>(yPixel * 100.0 / screenHeight);
+	}
+	return true;
+}*/
+bool TActionExt::BannerSort(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
+{
+	std::vector<BannerClass*> csfBanners;
+	for (const auto& pBanner : BannerClass::Array)
+	{
+		if (!pBanner->Type || pBanner->Type->BannerType != BannerType::CSF)
+			continue;
+		csfBanners.push_back(pBanner.get());
+	}
+	if (csfBanners.empty())
+		return false;
+	// 按当前 Y 从顶部到底部排序
+	std::stable_sort(csfBanners.begin(), csfBanners.end(),
+		[](const BannerClass* lhs, const BannerClass* rhs)
+ {
+	 return lhs->Position.Y < rhs->Position.Y;
+		});
+	const int count = static_cast<int>(csfBanners.size());
+	const double bottomMarginPercent = 5;  // 底部安全区
+	const double lineHeightPercent = 2;    // 你希望的理想行距
+	const double minSafeGapPercent = 2;    // 实测：差 1% 会重叠，2% 才安全
+	// 从最下面一条开始放
+	int currentY = 100 - static_cast<int>(bottomMarginPercent);
+	for (int i = count - 1; i >= 0; --i)
+	{
+		// 当前这条直接放到算好的位置
+		csfBanners[i]->Position.Y = currentY;
+		if (i == 0)
+			break;
+		// 上一条的理想位置
+		double rawY = 100.0 - (bottomMarginPercent + (count - i) * lineHeightPercent);
+		int idealY = static_cast<int>(std::lround(rawY));
+		// 但是不能离当前这条太近，至少要留 minSafeGapPercent
+		int maxAllowedY = csfBanners[i]->Position.Y - static_cast<int>(std::ceil(minSafeGapPercent));
+		// 取“理想位置”和“安全上限”里更靠上的那个
+		currentY = std::min(idealY, maxAllowedY);
+	}
+	return true;
+}
 bool TActionExt::EnableTriggerWithMark(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
 {
 
@@ -2321,6 +2503,8 @@ bool TActionExt::CreateTeamChronoToRandomUnit(TActionClass* pThis, HouseClass* p
 		HouseClass* targetHouse = HouseClass::Array->GetItem(pThis->Param3);
 		for (auto const pTechno : *TechnoClass::Array())
 		{
+
+			if (!pTechno) continue;
 			if (pTechno->Owner == targetHouse)
 			{
 				for (auto item : RulesExt::Global()->AITargetTypesLists[pThis->Waypoint])
@@ -2402,6 +2586,22 @@ bool TActionExt::SetTechWeapon(TActionClass* pThis, HouseClass* pHouse, ObjectCl
 	techtype->Weapon[0].WeaponType = wtype;
 	return true;
 }
+bool TActionExt::SetTechnoTypeCloak(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
+{
+	TechnoTypeClass* techtype = TechnoTypeClass::Find(pThis->Text);
+	if (pThis->Param3 == 0)
+	{
+		techtype->Cloakable = false;
+	}
+	else
+	{
+		CRT::swprintf(Phobos::wideBuffer, L"%d", 1);
+		MessageListClass::Instance->PrintMessage(Phobos::wideBuffer);
+		techtype->Cloakable = true;
+	}
+	techtype->CloakingSpeed = pThis->Param4;
+	return true;
+}
 bool TActionExt::SetWeaponRange(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
 {
 	WeaponTypeClass* wtype = WeaponTypeClass::Find(pThis->Text);
@@ -2417,6 +2617,8 @@ bool TActionExt::SetStrength(TActionClass* pThis, HouseClass* pHouse, ObjectClas
 
 	for (auto const pTechno : *TechnoClass::Array())
 	{
+
+		if (!pTechno) continue;
 		if (pTechno->GetTechnoType() == techtype)
 		{
 			if (pThis->Param4 == 1)
@@ -2532,7 +2734,9 @@ bool TActionExt::CreateAreaClass(TActionClass* pThis, HouseClass* pHouse, Object
 		CellStruct coord = ScenarioClass::Instance()->GetWaypointCoords(i);
 		cells.push_back(coord);
 	}
-	auto newarea=new AreaClass(pThis->Value, cells);
+	auto newarea = new AreaClass();
+	newarea->ID = pThis->Value;
+	newarea->Cells=cells;
 	AreaClass::Array.emplace_back(newarea);
 	auto areas= AreaClass::Array;
 	for (int i=0;i<areas.size();i++)
@@ -2688,7 +2892,412 @@ bool TActionExt::AddCellToAreaByWaypoint(TActionClass* pThis, HouseClass* pHouse
 			}
 		}
 	}
+	return true;
+}
+bool CheckRectangleOverlap(CellStruct aStart, CellStruct aEnd, CellStruct bStart, CellStruct bEnd)
+{
+	return (aStart.X < bEnd.X && aEnd.X > bStart.X &&
+			aStart.Y < bEnd.Y && aEnd.Y > bStart.Y);
+}
+bool TActionExt::AddNodesOnArea(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
+{
+	auto areas = AreaClass::Array;
+	BuildingTypeClass* pType = BuildingTypeClass::Find(pThis->Text);
+	HouseClass* house = HouseClass::Array->GetItem(pThis->Param4);
+	int num = pThis->Param5;
 
+	if (num <= 0 || !pType || !house) return false;
+	int width=pType->GetFoundationWidth(), height = pType->GetFoundationHeight(false);
+	if (width <= 0 || height <= 0) return false;
+
+	AreaClass* targetArea = nullptr;
+	for (auto& area : areas)
+	{
+		if (area->ID == pThis->Param3)
+		{
+			targetArea = area;
+			break;
+		}
+	}
+	if (!targetArea) return false;
+
+
+	std::vector<CellStruct> candidateCells;
+	for (auto& cell : targetArea->Cells)
+	{
+		if (pType->CanPlaceHere(&cell, house))
+		{
+			candidateCells.push_back(cell);
+		}
+	}
+	if (candidateCells.empty()) return false;
+
+	static std::random_device rd;
+	static std::mt19937 rng(rd());
+	std::shuffle(candidateCells.begin(), candidateCells.end(), rng);
+	std::vector<CellStruct> occupiedCells;
+	int addedCount = 0;
+	const int maxAttempts = candidateCells.size() * 3; // 最大尝试次数避免死循环
+	int attempt = 0;
+
+	// 预计算所有已存在的建筑占据区域（优化性能）
+	std::vector<std::pair<CellStruct, CellStruct>> existingOccupiedAreas;
+	for (const auto& existingNode : house->Base.BaseNodes)
+	{
+		if (!existingNode.Placed) continue;
+
+		BuildingTypeClass* existingType = BuildingTypeClass::Array->GetItem(existingNode.BuildingTypeIndex);
+		if (!existingType) continue;
+
+		int existingWidth = existingType->GetFoundationWidth();
+		int existingHeight = existingType->GetFoundationHeight(false);
+		CellStruct startCell = existingNode.MapCoords;
+		CellStruct endCell = {
+			startCell.X + existingWidth - 1,
+			startCell.Y + existingHeight - 1
+		};
+		existingOccupiedAreas.emplace_back(startCell, endCell);
+	}
+
+	while (addedCount < num && attempt < maxAttempts)
+	{
+		if (candidateCells.empty()) break;
+
+		int randomIndex = rand() % candidateCells.size();
+		CellStruct cell = candidateCells[randomIndex];
+
+		// 计算新建筑占据的区域
+		CellStruct newStart = cell;
+		CellStruct newEnd = {
+			cell.X + width - 1,
+			cell.Y + height - 1
+		};
+
+		// 检查冲突（包括新放置的和原有的）
+		bool canPlace = true;
+
+		// 检查与原有建筑冲突
+		for (const auto& area : existingOccupiedAreas)
+		{
+			if (CheckRectangleOverlap(newStart, newEnd, area.first, area.second))
+			{
+				canPlace = false;
+				break;
+			}
+		}
+		if (!canPlace) continue;
+
+		// 检查与新放置的建筑冲突
+		for (const auto& occupied : occupiedCells)
+		{
+			if (occupied.X >= newStart.X && occupied.X <= newEnd.X &&
+				occupied.Y >= newStart.Y && occupied.Y <= newEnd.Y)
+			{
+				canPlace = false;
+				break;
+			}
+		}
+		if (!canPlace) continue;
+
+		// 创建新节点
+		BaseNodeClass newNode;
+		newNode.BuildingTypeIndex = pType->ArrayIndex;
+		newNode.MapCoords = cell;
+		newNode.Placed = false;
+		newNode.Attempts = 0;
+		house->Base.BaseNodes.AddItem(newNode);
+
+		// 记录新占据的区域
+		occupiedCells.push_back(cell);
+		for (int x = cell.X + 1; x < cell.X + width; ++x)
+		{
+			for (int y = cell.Y; y < cell.Y + height; ++y)
+			{
+				CellStruct t = { x,y };
+				occupiedCells.push_back(t);
+			}
+		}
+		addedCount++;
+		attempt++;
+	}
+
+	return true;
+
+}
+bool TActionExt::SetAreaCaptureHouse(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
+{
+	auto areas = AreaClass::Array;
+	AreaClass* targetArea = nullptr;
+	for (auto& area : areas)
+	{
+		if (area->ID == pThis->Value)
+		{
+			targetArea = area;
+			break;
+		}
+	}
+	if (!targetArea) return false;
+	const int count = HouseClass::Array->Count;
+	std::vector<int> a(count,0);
+	for (auto& cell : targetArea->Cells)
+	{
+		CellClass* pCell = MapClass::Instance->TryGetCellAt(cell);
+		auto  FirstObject = pCell->FirstObject;
+		if (!FirstObject) continue;
+		while (FirstObject)
+		{
+			int index = FirstObject->GetOwningHouseIndex();
+			auto house = HouseClass::Array->GetItem(index);
+			if (!house)
+			{
+				FirstObject = FirstObject->NextObject;
+				continue;
+			}
+			const auto pTypeExt = TechnoTypeExt::ExtMap.Find(FirstObject->GetTechnoType());
+			if (!pTypeExt)
+			{
+				FirstObject = FirstObject->NextObject;
+				continue;
+			}
+			if (!house->IsNeutral())
+			{
+				if (FirstObject->WhatAmI() == AbstractType::Unit || FirstObject->WhatAmI() == AbstractType::Infantry || FirstObject->WhatAmI() == AbstractType::Building)
+				{
+					if (pTypeExt->CanCaptureArea)
+					{
+						a[index]++;
+					}
+				}
+			}
+			FirstObject = FirstObject->NextObject;
+		}
+	}
+	int max = a[0],u=0;
+	for (int i = 1; i < a.size(); i++)
+	{
+		if (a[i] >=max)
+		{
+			if (max == a[i])
+			{
+				HouseClass* nowHouse= HouseClass::Array->GetItem(i);
+				HouseClass* fHouse = HouseClass::Array->GetItem(u);
+				if (pThis->Param3 == 0 && nowHouse->IsHumanPlayer) u = i;
+				else if (pThis->Param3 == 1 && fHouse->IsHumanPlayer)u = i;				
+			}
+			else if (max < a[i])
+			{
+				max = a[i];
+				u = i;
+			}
+		}
+	}
+	targetArea->CaptureHouse = HouseClass::Array->GetItem(u);
+	targetArea->CaptureObjectNumber = max;
+	//CRT::swprintf(Phobos::wideBuffer, L"%s:%d", ConvertWchar(targetArea->CaptureHouse->get_ID()), max);
+   // MessageListClass::Instance->PrintMessage(Phobos::wideBuffer);
+	return true;
+}
+bool TActionExt::ChangeAreaObjectHouses(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
+{
+	auto areas = AreaClass::Array;
+	AreaClass* targetArea = nullptr;
+	for (auto& area : areas)
+	{
+		if (area->ID == pThis->Value)
+		{
+			targetArea = area;
+			break;
+		}
+	}
+	if (!targetArea) return false;
+	/*for (auto const pTechno : *TechnoClass::Array())
+	{
+
+		if (!pTechno) continue;
+		auto house = pTechno->GetOwningHouse();
+		if (pTechno->WhatAmI() == AbstractType::Unit || pTechno->WhatAmI() == AbstractType::Infantry || pTechno->WhatAmI() == AbstractType::Building || pTechno->WhatAmI() == AbstractType::Aircraft)
+		{
+			CellStruct pCell = pTechno->GetMapCoords();
+			if (targetArea->IsInArea(pCell))
+			{
+				if (pTechno->CaptureManager != nullptr)
+				{
+					CaptureManagerClass* pManager = pTechno->CaptureManager;
+					for (int i = pManager->ControlNodes.Count - 1; i >= 0; i--)
+					{
+						const auto pNode = pManager->ControlNodes[i];
+						if (auto pUnit = pNode->Unit)
+						{
+							CaptureManagerExt::FreeUnit(pManager, pUnit, false);
+						}
+					}
+				}
+				if (pTechno->MindControlledBy)
+				{
+					CaptureManagerExt::FreeUnit(pTechno->MindControlledBy->CaptureManager, pTechno, false);
+				}
+				if (house && ((!house->IsNeutral()) && (house != pHouse)))
+				{
+					pTechno->SetOwningHouse(pHouse);
+				}
+			}
+		}
+	}*/
+	const int count = HouseClass::Array->Count;
+
+	for (auto& cell : targetArea->Cells)
+	{
+		CellClass* pCell = MapClass::Instance->TryGetCellAt(cell);
+		ObjectClass* FirstObject = nullptr;
+		const auto pCellExt = CellExt::ExtMap.Find(pCell);
+		auto AltObject = pCell->AltObject;
+		if (!AltObject)
+		{
+			FirstObject = pCell->FirstObject;
+		}
+		else
+		{
+			FirstObject = pCell->AltObject;
+		}
+		if (FirstObject)
+		{
+			while (FirstObject)
+			{
+				int index = FirstObject->GetOwningHouseIndex();
+				auto house = HouseClass::Array->GetItem(index);
+				if (!house)
+				{
+					FirstObject = FirstObject->NextObject;
+					continue;
+				}
+				const auto pTypeExt = TechnoTypeExt::ExtMap.Find(FirstObject->GetTechnoType());
+				if (!pTypeExt)
+				{
+					FirstObject = FirstObject->NextObject;
+					continue;
+				}
+				if ((!house->IsNeutral()) && (house != pHouse))
+				{
+					if (FirstObject->WhatAmI() == AbstractType::Unit || FirstObject->WhatAmI() == AbstractType::Infantry || FirstObject->WhatAmI() == AbstractType::Building || FirstObject->WhatAmI() == AbstractType::Aircraft)
+					{
+						TechnoClass* pTechno = nullptr;
+						pTechno = static_cast<TechnoClass*>(FirstObject);
+						if (pTechno->CaptureManager != nullptr)
+						{
+							CaptureManagerClass* pManager = pTechno->CaptureManager;
+							for (int i = pManager->ControlNodes.Count - 1; i >= 0; i--)
+							{
+								const auto pNode = pManager->ControlNodes[i];
+								if (auto pUnit = pNode->Unit)
+								{
+									CaptureManagerExt::FreeUnit(pManager, pUnit, false);
+								}
+							}
+						}
+						if (pTechno->MindControlledBy)
+						{
+							CaptureManagerExt::FreeUnit(pTechno->MindControlledBy->CaptureManager, pTechno, false);
+						}
+						pTechno->SetOwningHouse(pHouse);
+					}
+				}
+				FirstObject = FirstObject->NextObject;
+			}
+		}
+		if (!pCellExt)
+		{
+			continue;
+		}
+		if (pCellExt->AirUnits.size() > 0)
+		{
+			// 迭代副本：SetOwningHouse 可能触发单位重建/重登记，使原 vector 中途变化，
+			// 直接遍历会漏项或使迭代器失效（表现为两个飞行兵只改了一个）。
+			auto units = pCellExt->AirUnits;
+			for (TechnoClass* pTech : units)
+			{
+				HouseClass* aHouse = pTech->GetOwningHouse();
+				if (!aHouse->IsNeutral() && (aHouse != pHouse))
+				{
+					pTech->SetOwningHouse(pHouse);
+				}
+			}
+		}
+	}
+	// 兜底：以每个空气单位的当前坐标为权威遍历已登记空气单位（而非全部 TechnoClass）。
+	// 避免一次性快照落在个别单位登记完成之前而漏掉，或区域 Cells 列表未覆盖其当前格。
+	/*for (TechnoClass* pTech : CellExt::GetAllTrackedAirUnits())
+	{
+		if (!pTech || !pTech->IsAlive)
+			continue;
+		if (!targetArea->IsInArea(pTech->GetMapCoords()))
+			continue;
+		HouseClass* aHouse = pTech->GetOwningHouse();
+		if (!aHouse->IsNeutral() && (aHouse != pHouse))
+		{
+			CRT::swprintf(Phobos::wideBuffer, L"%s", ConvertWchar(pTech->get_ID()));
+			MessageListClass::Instance->PrintMessage(Phobos::wideBuffer);
+			pTech->SetOwningHouse(pHouse);
+		}
+	}*/
+	return true;
+}
+bool TActionExt::CreateAreaClassByCellTags(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
+{
+    std::vector<CellStruct>Cells;
+    Cells.clear();
+	AreaClass* newarea = new AreaClass();
+	newarea->ID = pThis->Param3;
+	DynamicVectorClass<CellStruct> cells = MapClass::Instance()->TaggedCells;
+	for (auto coord : cells)
+	{
+		CellClass* cell= MapClass::Instance->TryGetCellAt(coord);
+		if (cell->AttachedTag->Type == pThis->TagType)
+		{
+			Cells.push_back(coord);
+		}
+	}
+	if (Cells.size() <= 0) return true;
+	newarea->Cells =Cells;
+
+	AreaClass::Array.emplace_back(newarea);
+	return true;
+
+}
+bool TActionExt::SetTechCapturable(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
+{
+	TechnoTypeClass* techtype = TechnoTypeClass::Find(pThis->Text);
+	if(pThis->Param3==0)
+	    techtype->ImmuneToPsionics = false;
+	else if (pThis->Param3 == 1)
+	{		;
+		for (auto const pTechno : *TechnoClass::Array())
+		{
+
+			if (!pTechno) continue;
+			if (pTechno->GetTechnoType()==techtype)
+			{
+				if (auto pCapturer = pTechno->MindControlledBy)
+				{
+					CaptureManagerExt::FreeUnit(pCapturer->CaptureManager, pTechno, false);
+				}
+			}
+		}
+		techtype->ImmuneToPsionics = true;
+	}
+	return true;
+}
+bool TActionExt::UpdateAngerLevel(TActionClass* pThis, HouseClass* pHouse, ObjectClass* pObject, TriggerClass* pTrigger, CellStruct const& location)
+{
+	HouseClass* targetHouse = HouseClass::Array->GetItem(pThis->Value);
+	if (pThis->Param3 == 1)
+	{
+		pHouse->UpdateAngerNodes(pThis->Param4, targetHouse);
+	}
+	else
+	{
+		pHouse->UpdateAngerNodes(-pThis->Param4, targetHouse);
+	}
+	return true;
 }
 // =============================
 // container

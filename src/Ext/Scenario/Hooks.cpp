@@ -41,3 +41,14 @@ DEFINE_HOOK(0x5CF04F, CheckMissionCount, 0x5)
 	}
 	return 0x5CF054;
 }
+DEFINE_HOOK(0x4D9A1B, FootClass_PointerExpired_RemoveDestination, 0x6)
+{
+	if (!ScenarioExt::Global()->InfantryExpiredSwitch) return 0;
+	GET_STACK(bool, removed, STACK_OFFSET(0x1C, 0x8));
+
+	if (removed)
+		return 0x4D9ABD;
+
+	R->BL(true);
+	return 0x4D9A25;
+}//修复步兵丢失目的地的BUG

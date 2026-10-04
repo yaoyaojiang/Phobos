@@ -21,6 +21,11 @@ enum class PhobosScripts : unsigned int
 {
 	// Range 10000-10999 are team (aka ingame) actions
 	// Sub-range 10000-10049 is for "attack" actions
+	MoveToWaypoint=100,
+	MoveToWaypointInAreaRandomly = 101,
+	PatrolToWaypoint=102,
+	MoveToCellByVar= 103,
+	EnterGrinder = 104,
 	RepeatAttackCloser = 10000,
 	SingleAttackCloser = 10001,
 	RepeatAttackTypeCloser = 10002,
@@ -232,9 +237,14 @@ public:
 	static TechnoClass* FindBestObject(TechnoClass* pTechno, int method, int calcThreatMode, bool pickAllies, int attackAITargetType, int idxAITargetTypeItem);
 	static void Mission_Move_List(TeamClass* pTeam, int calcThreatMode, bool pickAllies, int attackAITargetType);
 	static void Mission_Move_List1Random(TeamClass* pTeam, int calcThreatMode, bool pickAllies, int attackAITargetType, int idxAITargetTypeItem);
-
+	static void MoveToWaypoint(TeamClass* pTeam);
+	static void MoveToWaypointInAreaRandomly(TeamClass* pTeam);
+	static void PatrolToWaypoint(TeamClass* pTeam);
+	static void MoveToCellByVar(TeamClass* pTeam);
+	static void EnterGrinder(TeamClass* pTeam);
 private:
 	static void ModifyCurrentTriggerWeight(TeamClass* pTeam, bool forceJumpLine, double modifier);
 	static bool MoveMissionEndStatus(TeamClass* pTeam, TechnoClass* pFocus, FootClass* pLeader, int mode);
+	static bool MoveMissionEndStatus(TeamClass* pTeam, CellClass* pFocus, FootClass* pLeader, int mode);
 	static void ChronoshiftTeamToTarget(TeamClass* pTeam, TechnoClass* pTeamLeader, AbstractClass* pTarget);
 };

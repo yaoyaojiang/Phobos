@@ -31,6 +31,10 @@ public:
 		std::map<int, CellStruct> Waypoints;
 		std::map<int, ExtendedVariable> Variables[2]; // 0 for local, 1 for global
 		Nullable<PhobosFixedString<0x20>> NextMission;
+		int RealTime;
+		bool InfantryExpiredSwitch;
+		bool IsUsingHalfShadow;
+		bool IsCheating;
 
 		ExtData(ScenarioClass* OwnerObject) : Extension<ScenarioClass>(OwnerObject)
 			, ShowBriefing { false }
@@ -39,6 +43,10 @@ public:
 			, Waypoints { }
 			, Variables { }
 			, NextMission { }
+			, RealTime {0 }
+			, InfantryExpiredSwitch { false }
+			, IsUsingHalfShadow { false }
+			, IsCheating { false }
 
 		{ }
 

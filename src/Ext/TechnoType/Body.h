@@ -189,6 +189,8 @@ public:
 		Nullable<bool> ShowPower;
 		Nullable<bool> ShowBlackout;
 		Valueable<int> Magic;
+		Valueable<bool> CanCaptureArea;
+		Valueable<bool> ProtectedDriverPB;
 
 		struct LaserTrailDataEntry
 		{
@@ -374,6 +376,8 @@ public:
 			, ShowPower { true }
 			, ShowBlackout { true }
 			, Magic { 0 }
+			, CanCaptureArea{true }
+			,ProtectedDriverPB { false }
 		{ }
 
 		virtual ~ExtData() = default;

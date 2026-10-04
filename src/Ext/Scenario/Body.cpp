@@ -122,6 +122,7 @@ void ScenarioExt::ExtData::LoadFromINIFile(CCINIClass* const pINI)
 
 		this->ShowBriefing = pINI_MISSIONMD->ReadBool(scenarioName, "ShowBriefing", pINI->ReadBool(GameStrings::Basic,"ShowBriefing", this->ShowBriefing));
 		this->BriefingTheme = pINI_MISSIONMD->ReadTheme(scenarioName, "BriefingTheme", pINI->ReadTheme(GameStrings::Basic, "BriefingTheme", this->BriefingTheme));
+		this->InfantryExpiredSwitch = pINI_MISSIONMD->ReadBool(scenarioName, "InfantryExpiredSwitch", pINI->ReadBool(GameStrings::Basic, "InfantryExpiredSwitch", this->InfantryExpiredSwitch));
 
 		CCINIClass::UnloadINIFile(pINI_MISSIONMD);
 
@@ -143,6 +144,10 @@ void ScenarioExt::ExtData::Serialize(T& Stm)
 		.Process(this->ShowBriefing)
 		.Process(this->BriefingTheme)
 		.Process(this->CanSaveOrLoad)
+		.Process(this->RealTime)
+		.Process(this->InfantryExpiredSwitch)
+		.Process(this->IsUsingHalfShadow)
+		.Process(this->IsCheating)
 		;
 }
 

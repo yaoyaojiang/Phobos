@@ -4,6 +4,9 @@
 #include "Ext/Techno/Body.h"
 #include "Ext/Building/Body.h"
 #include <unordered_map>
+#include <functional>
+
+#include <MessageListClass.h>
 
 DEFINE_HOOK(0x4F8440, HouseClass_Update_Beginning, 0x5)
 {
@@ -250,3 +253,207 @@ DEFINE_HOOK(0x65E997, HouseClass_SendAirstrike_PlaceAircraft, 0x6)
 
 	return result ? SkipGameCode : SkipGameCodeNoSuccess;
 }
+
+DEFINE_HOOK(0x51986A, HouseClass_Infantry_Grinder, 0xA)
+{
+	GET(InfantryClass*, pInfantry, ESI);
+	if (auto pExt = HouseExt::ExtMap.Find(pInfantry->Owner))
+	{
+		pExt->UpdateGrinderData(abstract_cast<TechnoClass*>(pInfantry));
+	}
+	return 0;
+}
+/*DEFINE_HOOK(0x4F9950, HouseClass_GiveMoney, 0xA)
+{
+	GET(HouseClass*, pHouse, ECX);   // this指针通过ECX传递
+	GET_STACK(int, amount, 0x4);
+	Debug::Log("%s get %d\n", pHouse->Type->ID, amount);
+
+	return 0;
+}
+DEFINE_HOOK(0x5F65F0, ObjectClass_UnInit_CaptureThis, 0x6)
+{
+	// 通过ECX寄存器直接获取this指针（thiscall约定）
+	GET(ObjectClass*, pThis, ECX); // 如果ObjectClass继承自TechnoClass
+
+	Debug::Log("UnInit has get this,the name is %s\n",pThis->GetClassNameA());
+	// 有效性检查
+	if (pThis&&pThis->WhatAmI()== AbstractType::Unit)
+	{
+		// 记录日志（示例）
+		Debug::Log("[UnInit] Destorying Object: %s\n", pThis->GetTechnoType()->ID);
+	}
+
+	return 0; // 继续执行原函数
+}
+
+char* WCharUtf(const std::wstring& wstr)
+{
+	size_t utf8Length = 0;
+	for (wchar_t wc : wstr)
+	{
+		if (wc < 0x80)
+		{
+			utf8Length += 1;
+		}
+		else if (wc < 0x800)
+		{
+			utf8Length += 2;
+		}
+		else if (wc < 0x10000)
+		{
+			utf8Length += 3;
+		}
+		else
+		{
+			// Surrogate pair encountered, handle it or return nullptr  
+			return nullptr;
+		}
+	}
+
+	// Allocate memory for the UTF-8 string (including null terminator)  
+	char* utf8Str = new char[utf8Length + 1];
+	if (!utf8Str)
+	{
+		// Allocation failed  
+		return nullptr;
+	}
+
+	char* writePtr = utf8Str;
+	for (wchar_t wc : wstr)
+	{
+		if (wc < 0x80)
+		{
+			*writePtr++ = static_cast<char>(wc);
+		}
+		else if (wc < 0x800)
+		{
+			*writePtr++ = 0xC0 | ((wc >> 6) & 0x1F);
+			*writePtr++ = 0x80 | (wc & 0x3F);
+		}
+		else if (wc < 0x10000)
+		{
+			*writePtr++ = 0xE0 | ((wc >> 12) & 0x0F);
+			*writePtr++ = 0x80 | ((wc >> 6) & 0x3F);
+			*writePtr++ = 0x80 | (wc & 0x3F);
+		}
+		else
+		{
+			// Surrogate pair encountered, cleanup and return nullptr  
+			delete[] utf8Str;
+			return nullptr;
+		}
+	}
+	*writePtr = '\0'; // Add null terminator  
+
+	return utf8Str;
+}
+DEFINE_HOOK(0x5F6681, ObjectClass_UnInit_ReturnValue, 0x3)
+{
+	// 获取返回值（EAX寄存器）
+	int returnValue;
+	__asm { mov returnValue, eax } // 直接读取EAX
+
+	// 获取this指针（从栈中恢复，此时ECX可能已被修改）
+	GET_STACK(ObjectClass*, pThis, 0x4); // 根据栈帧调整偏移
+		// 示例：记录返回值和对象信息
+	Debug::Log("[UnInit] UnunitOver,ReturnValue=%d\n", returnValue);
+	// 允许原函数正常返回（无需干预）
+	return 0;
+}*/
+
+DEFINE_HOOK(0x73A0A5, HouseClass_Vehicle_Grinder, 0xB)
+{
+	GET(UnitClass*, pUnit, EBP);
+
+	// 处理载具回收逻辑
+	if (auto pExt = HouseExt::ExtMap.Find(pUnit->Owner))
+	{
+		// 更新载具本身的回收数据
+
+		pExt->UpdateGrinderData(abstract_cast<TechnoClass*>(pUnit));
+
+		// 递归处理载具内的所有乘客（步兵或其他载具）
+
+		std::function<void(FootClass*)> ProcessPassengers;
+
+		// 通过lambda捕获外部变量（注意此时ProcessPassengers已声明但未初始化）
+		ProcessPassengers = [pExt, &ProcessPassengers](FootClass* pCurrent)
+			{
+				while (pCurrent)
+				{
+					if (auto pTechno = abstract_cast<TechnoClass*>(pCurrent))
+					{
+						if (pTechno->WhatAmI() == AbstractType::Infantry ||
+							pTechno->WhatAmI() == AbstractType::Unit)
+						{
+							pExt->UpdateGrinderData(pTechno);
+
+							if (pTechno->WhatAmI() == AbstractType::Unit)
+							{
+								auto pUnit = abstract_cast<UnitClass*>(pTechno);
+								if (pUnit->Passengers.FirstPassenger)
+								{
+									// ✅ 此时ProcessPassengers已完全初始化
+									ProcessPassengers(pUnit->Passengers.FirstPassenger);
+								}
+							}
+						}
+					}
+					pCurrent = abstract_cast<FootClass*>(pCurrent->NextObject);
+				}
+			};
+
+		// ✅ 首次调用（此时lambda已完全初始化）
+		ProcessPassengers(pUnit->Passengers.FirstPassenger);
+		if (auto pPara = pUnit->ParasiteEatingMe)
+		{
+			pExt->UpdateGrinderData(abstract_cast<TechnoClass*>(pPara));
+		}
+		Debug::Log("A %s has Grinderd\n", pUnit->GetTechnoType()->ID);
+	}
+	return 0;
+}
+DEFINE_HOOK(0x43FB2B, Update_ProduceCashAmount, 0x6)
+{
+	GET(BuildingClass*, pBuilding, ESI);
+	if (pBuilding->Type->ProduceCashAmount == 0)
+		return 0;
+	if (auto pExt = HouseExt::ExtMap.Find(pBuilding->Owner))
+	{
+		pExt->UpdateProduceAmount(pBuilding);
+
+	}
+		return 0;
+}
+/*wchar_t* ConvertWcharNW(const char* asciiStr)
+{
+	size_t len = strlen(asciiStr) + 1; // 包括null终止符  
+	wchar_t* wideStr = new wchar_t[len];
+	for (size_t i = 0; i < len; ++i)
+	{
+		wideStr[i] = static_cast<wchar_t>(asciiStr[i]);
+	}
+	return wideStr;
+}*/
+DEFINE_HOOK(0x5188AE, InfantryClass_ReceiveDamage_Mutate, 0x6)
+{
+	GET(InfantryClass*, pThis, ESI);
+
+	// 现在您可以使用pThis指针访问InfantryClass的所有成员
+	// 例如：
+	// CoordStruct location = pThis->Location;
+	// HouseClass* owner = pThis->Owner;
+
+	if (auto pExt = HouseExt::ExtMap.Find(pThis->Owner))
+	{
+		pExt->UpdateMutatedData(pThis);
+	}
+	// 在这里添加您的处理逻辑
+	// Debug::Log("InfantryClass this pointer: 0x%08X\n", pThis);techname)
+	//CRT::swprintf(Phobos::wideBuffer, L"%s:%d", ConvertWcharNW(pThis->Type->ID),pThis->Type->Cost);
+		//MessageListClass::Instance->PrintMessage(Phobos::wideBuffer);
+
+		return 0;
+	}
+

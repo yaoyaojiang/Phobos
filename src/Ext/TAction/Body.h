@@ -59,7 +59,7 @@ enum class PhobosTriggerAction : unsigned int
 	CreateTeamChronoToRandomUnit = 736,
 	RunSuperWeaponAtRandomUnit2 = 737,
 	CreateTeamChronoRandom = 738,
-	MissionFail=739,
+	CreateCheatDetectionThread =739,
 	BanSaving=740,
 	CanSaving=741,
 	OutputRealTime=742,
@@ -90,7 +90,22 @@ enum class PhobosTriggerAction : unsigned int
 	RemoveCellsFromAreaUnpassable = 767,
 	RemoveCellsFromAreaCannotBuild = 768,
 	AddCellToAreaByWaypoint=769,
-
+	AddNodesOnArea = 770,
+	MoveNodeByTech = 771,
+	SetAreaCaptureHouse=772,
+	SetTechnoTypeCloak = 773,
+	CreateAreaClassByCellTags = 774,
+	SetTriggerExtCell=775,
+	PrintTriggerExtCell = 776,
+	CreateTeamWithBindingUnits=777,
+	CreateSingleTeamWithBindingUnits=778,
+	SetTechCapturable = 779,
+	StartCheatThread=780,
+	CheckCheating=781,
+	StopCheatDetectionThread=782,
+	ChangeAreaObjectHouses=783,
+	BannerSort=784,
+	UpdateAngerLevel=785
 };
 
 class TActionExt
@@ -174,7 +189,6 @@ public:
 	ACTION_FUNC(CreateTeamChronoToRandomUnit);
 	ACTION_FUNC(RunSuperWeaponAtRandomUnit2);
 	ACTION_FUNC(CreateTeamChronoRandom);
-	ACTION_FUNC(MissionFail);
 	ACTION_FUNC(BanSaving);
 	ACTION_FUNC(CanSaving);
 	ACTION_FUNC(OutputRealTime);
@@ -205,6 +219,24 @@ public:
 	ACTION_FUNC(RemoveCellsFromAreaUnpassable);
 	ACTION_FUNC(RemoveCellsFromAreaCannotBuild);
 	ACTION_FUNC(AddCellToAreaByWaypoint);
+	ACTION_FUNC(AddNodesOnArea);
+	ACTION_FUNC(MoveNodeByTech);
+	ACTION_FUNC(SetAreaCaptureHouse);
+	ACTION_FUNC(SetTechnoTypeCloak);
+	ACTION_FUNC(CreateAreaClassByCellTags);
+	ACTION_FUNC(SetTriggerExtCell);
+	ACTION_FUNC(PrintTriggerExtCell);
+	ACTION_FUNC(CreateTeamWithBindingUnits);
+	ACTION_FUNC(CreateSingleTeamWithBindingUnits);
+	ACTION_FUNC(SetTechCapturable);
+	ACTION_FUNC(StartCheatThread);
+	ACTION_FUNC(CheckCheating);
+	ACTION_FUNC(CreateCheatDetectionThread);
+	ACTION_FUNC(StopCheatDetectionThread);
+	ACTION_FUNC(ChangeAreaObjectHouses);
+	ACTION_FUNC(BannerSort);
+	ACTION_FUNC(UpdateAngerLevel);
+
 	static bool RunSuperWeaponAt(TActionClass* pThis, int X, int Y);
 
 #undef ACTION_FUNC

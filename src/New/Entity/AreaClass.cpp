@@ -8,10 +8,10 @@
 std::vector<AreaClass*> AreaClass::Array;
 
 
-AreaClass::AreaClass(int id, std::vector<CellStruct> cells)
-	: ID(id), Cells(std::move(cells)) { }
+AreaClass::AreaClass(int id, std::vector<CellStruct> cells, HouseClass* capturehouse,int captureobjectnumber)
+	: ID(id), Cells(std::move(cells)), CaptureHouse(capturehouse),CaptureObjectNumber(captureobjectnumber) { }
 AreaClass::AreaClass()
-	: ID(0), Cells()  // 显式初始化成员
+	: ID(0), Cells() ,CaptureHouse(nullptr),CaptureObjectNumber(0) // 显式初始化成员
 {
 }
 template <typename T>
@@ -20,8 +20,13 @@ bool AreaClass::Serialize(T& Stm)
 	return Stm
 		.Process(this->ID)
 		.Process(this->Cells)
+		.Process(this->CaptureHouse)
+		.Process(this->CaptureObjectNumber)
 		.Success();
 }
+
+
+
 
 bool AreaClass::Load(PhobosStreamReader& stm, bool registerForChange)
 {
@@ -185,7 +190,14 @@ bool AreaClass::IsCellInQuadrilateral(
 
 	return (intersectCount % 2) == 1;
 }
-
+bool AreaClass::IsInArea(CellStruct pCell)
+{
+	for (CellStruct cell : Cells)
+	{
+		if (cell == pCell) return true;
+	}
+	return false;
+}
 void AreaClass::Clear()
 {
 	for (auto* ptr : Array)

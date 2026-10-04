@@ -41,6 +41,8 @@ public:
 		ValueableVector<int> ExtraWarheads_DamageOverrides;
 		Nullable<WarheadTypeClass*> AmbientDamage_Warhead;
 		Valueable<bool> AmbientDamage_IgnoreTarget;
+		Valueable<bool> PassThroughBunker;
+		Valueable<bool> CanKillDriver;
 
 		ExtData(WeaponTypeClass* OwnerObject) : Extension<WeaponTypeClass>(OwnerObject)
 			, DiskLaser_Radius { DiskLaserClass::Radius }
@@ -64,6 +66,8 @@ public:
 			, ExtraWarheads_DamageOverrides {}
 			, AmbientDamage_Warhead {}
 			, AmbientDamage_IgnoreTarget { false }
+			,PassThroughBunker { true }
+			, CanKillDriver { false }
 		{ }
 
 		int GetBurstDelay(int burstIndex);

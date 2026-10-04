@@ -308,6 +308,15 @@ DEFINE_HOOK(0x6FC339, TechnoClass_CanFire, 0x6)
 			{
 				return CannotFire;
 			}
+			if (!pWeaponExt->PassThroughBunker&&pTechno->BunkerLinkedItem)
+			{
+				return CannotFire;
+			}
+			const auto pTechTypeExt = TechnoTypeExt::ExtMap.Find(pTechno->GetTechnoType());
+			if (pWeaponExt->CanKillDriver && pTechTypeExt->ProtectedDriverPB)
+			{
+				return CannotFire;
+			}
 		}
 	}
 

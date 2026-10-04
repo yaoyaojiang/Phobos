@@ -77,7 +77,7 @@ wchar_t* replaceSubstringWithCsf(const std::wstring& wstr, const std::wstring& w
 	std::wcscpy(r, result.c_str());
 	return r;
 }
-wchar_t* csfConvertA(const wchar_t* wstr)
+/*wchar_t* csfConvertA(const wchar_t* wstr)
 {
 	std::wstring inputStr(wstr);
 	std::map<int, ExtendedVariable> variables = ScenarioExt::Global()->Variables[0];
@@ -93,6 +93,81 @@ wchar_t* csfConvertA(const wchar_t* wstr)
 	size_t size = inputStr.size() + 1; // +1 for the null-terminator  
 	wchar_t* result = new wchar_t[size];
 	std::wcscpy(result, inputStr.c_str());
+
+	return result;
+}*/
+std::wstring ConvertCsfString(const std::wstring& input)
+{
+	const auto& variables = ScenarioExt::Global()->Variables[0];
+
+	std::wstring result;
+	result.reserve(input.size());
+
+	for (size_t i = 0; i < input.size(); )
+	{
+		if (input[i] == L'%')
+		{
+			// %% 转义为字面 %
+			if (i + 1 < input.size() && input[i + 1] == L'%')
+			{
+				result += L'%';
+				i += 2;
+				continue;
+			}
+
+			// 尝试匹配 %var<数字>%
+			if (i + 4 < input.size() &&
+				input[i + 1] == L'v' &&
+				input[i + 2] == L'a' &&
+				input[i + 3] == L'r')
+			{
+				size_t j = i + 4;
+				int varId = 0;
+				bool hasDigit = false;
+
+				while (j < input.size() && input[j] >= L'0' && input[j] <= L'9')
+				{
+					varId = varId * 10 + (input[j] - L'0');
+					hasDigit = true;
+					++j;
+				}
+
+				if (hasDigit && j < input.size() && input[j] == L'%')
+				{
+					auto it = variables.find(varId);
+
+					if (it != variables.end())
+						result += std::to_wstring(it->second.Value);
+					else
+						result.append(input, i, j - i + 1); // 找不到就保留原样
+
+					i = j + 1;
+					continue;
+				}
+			}
+
+			// 单独的 % 不是占位符，直接保留
+			result += input[i];
+			++i;
+		}
+		else
+		{
+			result += input[i];
+			++i;
+		}
+	}
+
+	return result;
+}
+
+wchar_t* csfConvertA(const wchar_t* wstr)
+{
+	std::wstring inputStr(wstr);
+	std::wstring converted = ConvertCsfString(inputStr);
+
+	size_t size = converted.size() + 1;
+	wchar_t* result = new wchar_t[size];
+	std::wcscpy(result, converted.c_str());
 
 	return result;
 }
@@ -278,16 +353,25 @@ void BannerClass::RenderCSF(int x, int y)
 			? TextPrintType::Background
 			: TextPrintType::LASTPOINT);
 
+	std::wstring escapedText;
+	escapedText.reserve(text.size() * 2);
+	for (wchar_t ch : text)
+	{
+		if (ch == L'%')
+			escapedText += L"%%";
+		else
+			escapedText += ch;
+	}
 	DSurface::Composite->DrawText
 	(
-		text.c_str(),
+		escapedText.c_str(),
 		&rect,
 		&pos,
 		Drawing::RGB_To_Int(this->Type->CSF_Color),
 		0,
 		textFlags
 	);
-	free(textc);
+	delete[] textc;
 }
 
 void BannerClass::RenderVariable(int x, int y)

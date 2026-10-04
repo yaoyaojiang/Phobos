@@ -11,6 +11,7 @@ class HouseClass;
 
 enum PhobosTriggerEvent
 {
+	Selling=300,
 	LocalVariableGreaterThan = 500,
 	LocalVariableLessThan = 501,
 	LocalVariableEqualsTo = 502,
@@ -66,6 +67,9 @@ enum PhobosTriggerEvent
 	OuterVariableNotEqualCsf = 614,
 	BuildingAttemptUp = 615,
 	AreaHasBuilding=700,
+	AreaHasCaptureByHouse = 701,
+	ElapsedRealTime=702,
+	AreaHasTechno = 703,
 	_DummyMaximum,
 };
 
@@ -97,6 +101,7 @@ public:
 	static bool Execute(TEventClass* pThis, int iEvent, HouseClass* pHouse, ObjectClass* pObject,
 					CDTimerClass* pTimer, bool* isPersitant, TechnoClass* pSource, bool& bHandled);
 
+	static bool AreaHasTechno(TEventClass* pThis, HouseClass* pHouse);
 	template<bool IsGlobal, typename _Pr>
 	static bool VariableCheck(TEventClass* pThis);
 	template<bool IsSrcGlobal, bool IsGlobal, typename _Pr>
@@ -118,6 +123,9 @@ public:
 	static bool OuterVariableNotEqualCsf(TEventClass* pThis);
 	static bool BuildingAttemptUp(TEventClass* pThis, HouseClass* pHouse);
 	static bool AreaHasBuilding(TEventClass* pThis, HouseClass* pHouse);
+	static bool AreaHasCaptureByHouse(TEventClass* pThis);
+	static bool ElapsedRealTime(TEventClass* pThis,CDTimerClass* pTimer);
+	static bool Selling(TEventClass* pThis);
 	class ExtContainer final : public Container<TEventExt>
 	{
 	public:

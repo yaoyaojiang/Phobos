@@ -213,6 +213,22 @@ void ScriptExt::ProcessAction(TeamClass* pTeam)
 		// Chronoshift to enemy base, argument is additional distance modifier
 		ScriptExt::ChronoshiftToEnemyBase(pTeam, argument);
 		break;
+	case PhobosScripts::MoveToWaypoint:
+		// Chronoshift to enemy base, argument is additional distance modifier
+		ScriptExt::MoveToWaypoint(pTeam);
+		break;
+	case PhobosScripts::MoveToWaypointInAreaRandomly:
+		ScriptExt::MoveToWaypointInAreaRandomly(pTeam);
+		break;
+	case PhobosScripts::PatrolToWaypoint:
+			ScriptExt::PatrolToWaypoint(pTeam);
+			break;
+	case PhobosScripts::MoveToCellByVar:
+			ScriptExt::MoveToCellByVar(pTeam);
+			break;
+	case PhobosScripts::EnterGrinder:
+			ScriptExt::EnterGrinder(pTeam);
+			break;
 	default:
 		// Do nothing because or it is a wrong Action number or it is an Ares/YR action...
 		if (action > 70 && !IsExtVariableAction(action))
@@ -837,6 +853,116 @@ bool ScriptExt::MoveMissionEndStatus(TeamClass* pTeam, TechnoClass* pFocus, Foot
 	return bForceNextAction;
 }
 
+bool ScriptExt::MoveMissionEndStatus(TeamClass* pTeam, CellClass* cell, FootClass* pLeader = nullptr, int mode = 0)
+{
+	if (!pTeam)
+		return false;
+
+	double closeEnough = RulesClass::Instance->CloseEnough / 256.0;
+
+	auto const pTeamData = TeamExt::ExtMap.Find(pTeam);
+
+	if (pTeamData && pTeamData->CloseEnough > 0)
+		closeEnough = pTeamData->CloseEnough;
+
+	bool bForceNextAction = false;
+	bool allarrive = true;
+	if (mode == 2)
+		bForceNextAction = true;
+
+	// Team already have a focused target
+	for (auto pUnit = pTeam->FirstUnit; pUnit; pUnit = pUnit->NextTeamMember)
+	{
+		if (IsUnitAvailable(pUnit, true)
+			&& !pUnit->TemporalTargetingMe
+			&& !pUnit->BeingWarpedOut)
+		{
+			if ((pUnit->DistanceFrom(cell) / 256.0) > closeEnough)
+			{
+				allarrive = false;
+			}
+			if (mode == 2)
+			{
+				// Default mode: all members in range
+				if ((pUnit->DistanceFrom(cell) / 256.0) > closeEnough)
+				{
+					bForceNextAction = false;
+
+					if (pUnit->WhatAmI() == AbstractType::Aircraft && pUnit->Ammo > 0)
+						pUnit->QueueMission(Mission::Move, false);
+
+					continue;
+				}
+				else
+				{
+					if (pUnit->WhatAmI() == AbstractType::Aircraft && pUnit->Ammo <= 0)
+					{
+						pUnit->EnterIdleMode(false, true);
+
+						continue;
+					}
+				}
+			}
+			else
+			{
+				if (mode == 1)
+				{
+					// Any member in range
+					if ((pUnit->DistanceFrom(cell) / 256.0) > closeEnough)
+					{
+						if (pUnit->WhatAmI() == AbstractType::Aircraft && pUnit->Ammo > 0)
+							pUnit->QueueMission(Mission::Move, false);
+
+						continue;
+					}
+					else
+					{
+						bForceNextAction = true;
+
+						if (pUnit->WhatAmI() == AbstractType::Aircraft && pUnit->Ammo <= 0)
+						{
+							pUnit->EnterIdleMode(false, true);
+
+							continue;
+						}
+					}
+				}
+				else
+				{
+					// All other cases: Team Leader mode in range
+					if (pLeader)
+					{
+						if ((pUnit->DistanceFrom(cell) / 256.0) > closeEnough)
+						{
+							if (pUnit->WhatAmI() == AbstractType::Aircraft && pUnit->Ammo > 0)
+								pUnit->QueueMission(Mission::Move, false);
+
+							continue;
+						}
+						else
+						{
+							if (pUnit->IsInitiated)
+								bForceNextAction = true;
+
+							if (pUnit->WhatAmI() == AbstractType::Aircraft && pUnit->Ammo <= 0)
+							{
+								pUnit->EnterIdleMode(false, true);
+
+								continue;
+							}
+						}
+					}
+					else
+					{
+						break;
+					}
+				}
+			}
+		}
+	}
+	if (allarrive) return true;
+	return bForceNextAction;
+}
 void ScriptExt::SkipNextAction(TeamClass* pTeam, int successPercentage = 0)
 {
 	// This team has no units! END

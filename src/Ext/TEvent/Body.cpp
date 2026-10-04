@@ -13,6 +13,8 @@
 #include <MessageListClass.h>
 #include <TlHelp32.h>
 #include <filesystem>
+#include <TriggerTypeClass.h>
+#include <TriggerClass.h>
 #pragma comment(lib, "psapi.lib") // 链接psapi库  
 
 //Static init
@@ -108,6 +110,8 @@ bool TEventExt::Execute(TEventClass* pThis, int iEvent, HouseClass* pHouse, Obje
 		// helper struct
 		struct and_with { bool operator()(int a, int b) { return a & b; } };
 
+	case PhobosTriggerEvent::Selling:
+		return TEventExt::Selling(pThis);
 	case PhobosTriggerEvent::LocalVariableGreaterThan:
 		return TEventExt::VariableCheck<false, std::greater<int>>(pThis);
 	case PhobosTriggerEvent::LocalVariableLessThan:
@@ -213,6 +217,12 @@ bool TEventExt::Execute(TEventClass* pThis, int iEvent, HouseClass* pHouse, Obje
 		return TEventExt::BuildingAttemptUp(pThis,pHouse);
 	case PhobosTriggerEvent::AreaHasBuilding:
 		return TEventExt::AreaHasBuilding(pThis, pHouse);
+	case PhobosTriggerEvent::AreaHasCaptureByHouse:
+		return TEventExt::AreaHasCaptureByHouse(pThis);
+	case PhobosTriggerEvent::ElapsedRealTime:
+		return TEventExt::ElapsedRealTime(pThis,pTimer);
+	case PhobosTriggerEvent::AreaHasTechno:
+		return TEventExt::AreaHasTechno(pThis, pHouse);
 	default:
 		bHandled = false;
 		return true;
@@ -523,6 +533,8 @@ bool TEventExt::OwnerApproachWaypoint(TEventClass* pThis, HouseClass* pHouse)
 	CellClass* cell= MapClass::Instance->GetCellAt(coord);
 	for (auto const pTechno : *TechnoClass::Array())
 	{
+
+		if (!pTechno) continue;
 		if (pTechno->GetTechnoType() == pType&&pTechno->Owner == pHouse && pTechno->WhatAmI() != AbstractType::BuildingType)
 		{
 			if (pTechno->DistanceFrom(cell) <= RulesClass::Instance->CloseEnough)
@@ -574,6 +586,79 @@ bool TEventExt::AreaHasBuilding(TEventClass* pThis, HouseClass* pHouse)
 		}
 	}
 	return false;
+}
+bool TEventExt::AreaHasTechno(TEventClass* pThis, HouseClass* pHouse)
+{
+	auto pType = TechnoTypeClass::Find(pThis->String);
+	if (!pType|| pType->WhatAmI() == AbstractType::BuildingType)
+		return false;
+	auto arrays = AreaClass::Array;
+	if (arrays.size() <= 0) return false;
+	AreaClass* areas = AreaClass::Array[pThis->Value];
+	if (!areas)
+		return false;
+
+	for (const auto& area : areas->Cells)
+	{
+		CellClass* cell = MapClass::Instance->GetCellAt(area);
+		if (!cell) continue; // 防止空指针崩溃
+
+		if (pType->WhatAmI() == AbstractType::UnitType)
+		{
+			auto pTechno = cell->GetUnit(false);
+			if (!pTechno) continue;
+			if (pTechno->Owner == pHouse && pTechno->Type == pType)
+			{
+				return true;
+			}
+		}
+		else if (pType->WhatAmI() == AbstractType::InfantryType)
+		{
+			auto pTechno = cell->GetInfantry(false);
+
+			if (!pTechno)
+			{
+				continue;
+			}
+			else
+			{
+			}
+			if (pTechno->Owner == pHouse && pTechno->Type == pType)
+			{
+				return true;
+			}
+		}
+		else if (pType->WhatAmI() == AbstractType::AircraftType)
+		{
+			auto pTechno = cell->GetAircraft(false);
+			if (!pTechno) continue;
+			if (pTechno->Owner == pHouse && pTechno->Type == pType)
+			{
+				return true;
+			}
+		}
+	}
+	return false;
+}
+bool TEventExt::AreaHasCaptureByHouse(TEventClass* pThis)
+{
+	auto arrays = AreaClass::Array;
+	if (arrays.size() <= 0) return false;
+	AreaClass* areas = AreaClass::Array[pThis->Value];
+	int index = atoi(pThis->String);
+	if (!areas->CaptureHouse) return false;
+	if (areas->CaptureHouse->ArrayIndex == index) return true;
+	else return false;
+
+}
+bool TEventExt::Selling(TEventClass* pThis)
+{
+	return true;
+}
+bool TEventExt::ElapsedRealTime(TEventClass* pThis, CDTimerClass* pTimer)
+{
+	if (ScenarioExt::Global()->RealTime >= pThis->Value) return true;
+	else return false;
 }
 std::wstring replaceSubstringWithIntegerE(const std::wstring& wstr, const std::wstring& wss, int replacementValue)
 {

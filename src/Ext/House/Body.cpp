@@ -4,6 +4,7 @@
 #include <Ext/Techno/Body.h>
 
 #include <ScenarioClass.h>
+#include <MessageListClass.h>
 
 //Static init
 
@@ -150,7 +151,61 @@ void HouseExt::ExtData::UpdateVehicleProduction()
 		}
 	}
 }
-
+wchar_t* ConvertWc(const char* asciiStr)
+{
+	size_t len = strlen(asciiStr) + 1; // 包括null终止符  
+	wchar_t* wideStr = new wchar_t[len];
+	for (size_t i = 0; i < len; ++i)
+	{
+		wideStr[i] = static_cast<wchar_t>(asciiStr[i]);
+	}
+	return wideStr;
+}
+void HouseExt::ExtData::UpdateGrinderData(TechnoClass* pTechno)
+{
+	TechnoTypeClass* pType = pTechno->GetTechnoType();
+	auto it = GrindedObjectTypes.find(pType);
+	if (it != GrindedObjectTypes.end())
+	{
+		it->second++;
+	}
+	else
+	{
+		GrindedObjectTypes[pType] = 1;
+	}
+	GrindedObjectAmount += pType->GetRefund(pTechno->Owner,false);
+}
+void HouseExt::ExtData::UpdateMutatedData(InfantryClass* pTechno)
+{
+	InfantryTypeClass* pType = pTechno->Type;
+	auto it = MutatedInfantryTypes.find(pType);
+	if (it != MutatedInfantryTypes.end())
+	{
+		it->second++;
+	}
+	else
+	{
+		MutatedInfantryTypes[pType] = 1;
+	}
+	MutatedInfantryAmount += pType->GetRefund(pTechno->Owner, false);
+}
+void HouseExt::ExtData::UpdateProduceAmount(BuildingClass* pBuilding)
+{
+	int StartTime = pBuilding->CashProductionTimer.StartTime;
+	int TimeLeft = pBuilding->CashProductionTimer.TimeLeft;
+	if (StartTime != -1)
+	{
+		if (Unsorted::CurrentFrame - StartTime <TimeLeft)
+		TimeLeft -= Unsorted::CurrentFrame - StartTime;
+	}
+	if (TimeLeft == 1)
+	{//pBuilding->IsPowerOnline()的这个函数在非平民所属且这个建筑转变过一次所属方才会生效，因此油井开头必须设为平民所属方，如果要给某个其他所属方就要用触发的转变所属，不然不会计数
+		if ((!pBuilding->Owner->Type->MultiplayPassive) && (pBuilding->IsPowerOnline()))
+		{
+			ProduceCashAmount+= pBuilding->Type->ProduceCashAmount;
+		}
+	}
+}
 bool HouseExt::ExtData::UpdateHarvesterProduction()
 {
 	auto pThis = this->OwnerObject();
@@ -488,6 +543,11 @@ void HouseExt::ExtData::LoadFromINIFile(CCINIClass* const pINI)
 
 	ValueableVector<bool> readBaseNodeRepairInfo;
 	readBaseNodeRepairInfo.Read(exINI, pSection, "RepairBaseNodes");
+
+	char rawValue[256] = {0};
+	pINI->ReadString(pSection, "IsNavalKickOutNode", "<not_found>", rawValue, 256);
+	this->IsNavalKickOutNode = pINI->ReadBool(pSection, "IsNavalKickOutNode", true);
+
 	size_t nWritten = readBaseNodeRepairInfo.size();
 	if (nWritten > 0)
 	{
@@ -520,6 +580,12 @@ void HouseExt::ExtData::Serialize(T& Stm)
 		.Process(this->RepairBaseNodes)
 		.Process(this->LastBuiltNavalVehicleType)
 		.Process(this->ProducingNavalUnitTypeIndex)
+		.Process(this->GrindedObjectTypes)
+		.Process(this->GrindedObjectAmount)
+		.Process(this->ProduceCashAmount)
+		.Process(this->MutatedInfantryTypes)
+		.Process(this->MutatedInfantryAmount)
+		.Process(this->IsNavalKickOutNode)
 		;
 }
 
@@ -617,6 +683,7 @@ DEFINE_HOOK(0x50114D, HouseClass_InitFromINI, 0x5)
 {
 	GET(HouseClass* const, pThis, EBX);
 	GET(CCINIClass* const, pINI, ESI);
+
 
 	HouseExt::ExtMap.LoadFromINI(pThis, pINI);
 

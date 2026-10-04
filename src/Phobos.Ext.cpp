@@ -7,6 +7,7 @@
 #include <Ext/Anim/Body.h>
 #include <Ext/Building/Body.h>
 #include <Ext/BuildingType/Body.h>
+#include <Ext/Cell/Body.h>
 #include <Ext/Bullet/Body.h>
 #include <Ext/BulletType/Body.h>
 #include <Ext/House/Body.h>
@@ -181,7 +182,7 @@ private:
 	// TAction: the method dispatcher class to call with each type
 	// ArgTypes: the argument types to call the method dispatcher's Process() method
 	template <typename TAction, typename... ArgTypes>
-	requires (DispatchesAction<TAction, RegisteredTypes, ArgTypes...> && ...)
+		requires (DispatchesAction<TAction, RegisteredTypes, ArgTypes...> && ...)
 	__forceinline static bool dispatch_mass_action(ArgTypes... args)
 	{
 		// (pack expression op ...) is a fold expression which
@@ -193,13 +194,14 @@ private:
 #pragma endregion
 
 // Add more class names as you like
-using PhobosTypeRegistry = TypeRegistry<
+using PhobosTypeRegistry = TypeRegistry <
 	// Ext classes
 	AircraftExt,
 	AnimTypeExt,
 	AnimExt,
 	BuildingExt,
 	BuildingTypeExt,
+	CellExt,
 	BulletExt,
 	BulletTypeExt,
 	HouseExt,
@@ -231,7 +233,7 @@ using PhobosTypeRegistry = TypeRegistry<
 	BannerClass,
 	AreaClass
 	// other classes
->;
+> ;
 
 DEFINE_HOOK(0x7258D0, AnnounceInvalidPointer, 0x6)
 {

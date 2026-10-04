@@ -398,7 +398,6 @@ void ScriptExt::Mission_Attack(TeamClass* pTeam, bool repeatAction = true, int c
 		}
 	}
 }
-
 TechnoClass* ScriptExt::GreatestThreat(TechnoClass* pTechno, int method, int calcThreatMode = 0, HouseClass* onlyTargetThisHouseEnemy = nullptr, int attackAITargetType = -1, int idxAITargetTypeItem = -1, bool agentMode = false)
 {
 	TechnoClass* bestObject = nullptr;
@@ -562,6 +561,14 @@ TechnoClass* ScriptExt::GreatestThreat(TechnoClass* pTechno, int method, int cal
 
 							if (value > bestVal || bestVal < 0)
 								isGoodTarget = true;
+						}
+						else if (calcThreatMode ==4)
+						{
+							// Is this object very FAR? then MORE THREAT against pTechno.
+							// More CLOSER? LESS THREAT for pTechno.
+							value = pTechno->DistanceFrom(object); // Note: distance is in leptons (*256)
+							if ((value <=weaponType->Range)&&(value > bestVal || bestVal < 0))
+							isGoodTarget = true;
 						}
 					}
 				}
@@ -1199,6 +1206,139 @@ void ScriptExt::Mission_Attack_List1Random(TeamClass* pTeam, bool repeatAction, 
 	}
 }
 
+void ScriptExt::PatrolToWaypoint(TeamClass* pTeam)
+{
+	auto pScript = pTeam->CurrentScript;
+	int scriptArgument = pScript->Type->ScriptActions[pScript->CurrentMission].Argument; // This is the target type
+	auto pTeamData = TeamExt::ExtMap.Find(pTeam);
+	bool noWaitLoop = false;
+	bool bAircraftsWithoutAmmo = false;
+	FootClass* pLeaderUnit = nullptr;
+	TechnoClass* pFocus = nullptr;
+
+
+	if (!pScript)
+		return;
+
+	if (!pTeamData)
+	{
+		pTeam->StepCompleted = true;
+		ScriptExt::Log("AI Scripts - Move: [%s] [%s] (line: %d = %d,%d) Jump to next line: %d = %d,%d -> (Reason: ExtData found)\n", pTeam->Type->ID, pScript->CurrentMission, pScript->Type->ScriptActions[pScript->CurrentMission].Action, pScript->Type->ScriptActions[pScript->CurrentMission].Argument, pScript->Type->ID, pScript->CurrentMission + 1, pScript->Type->ScriptActions[pScript->CurrentMission + 1].Action, pScript->Type->ScriptActions[pScript->CurrentMission + 1].Argument);
+
+		return;
+	}
+	if (pTeamData->WaitNoTargetCounter > 0)
+	{
+		if (pTeamData->WaitNoTargetTimer.InProgress())
+			return;
+
+		pTeamData->WaitNoTargetTimer.Stop();
+		noWaitLoop = true;
+		pTeamData->WaitNoTargetCounter = 0;
+
+		if (pTeamData->WaitNoTargetAttempts > 0)
+			pTeamData->WaitNoTargetAttempts--;
+	}
+
+	// This team has no units!
+	if (!pTeam)
+	{
+		if (pTeamData->CloseEnough > 0)
+			pTeamData->CloseEnough = -1;
+
+		// This action finished
+		pTeam->StepCompleted = true;
+		ScriptExt::Log("AI Scripts - Move: [%s] [%s] (line: %d = %d,%d) Jump to next line: %d = %d,%d -> (Reason: No team members alive)\n", pTeam->Type->ID, pScript->Type->ID, pScript->CurrentMission, pScript->Type->ScriptActions[pScript->CurrentMission].Action, pScript->Type->ScriptActions[pScript->CurrentMission].Argument, pScript->CurrentMission + 1, pScript->Type->ScriptActions[pScript->CurrentMission + 1].Action, pScript->Type->ScriptActions[pScript->CurrentMission + 1].Argument);
+
+		return;
+	}
+
+	pLeaderUnit = pTeamData->TeamLeader;
+
+	if (!IsUnitAvailable(pLeaderUnit, true))
+	{
+		pLeaderUnit = FindTheTeamLeader(pTeam);
+		pTeamData->TeamLeader = pLeaderUnit;
+	}
+
+	for (auto pFoot = pTeam->FirstUnit; pFoot; pFoot = pFoot->NextTeamMember)
+	{
+		if (pFoot && pFoot->IsAlive && !pFoot->InLimbo)
+		{
+			auto const pTechnoType = pFoot->GetTechnoType();
+
+			if (pFoot->WhatAmI() == AbstractType::Aircraft
+				&& !pFoot->IsInAir()
+				&& static_cast<AircraftTypeClass*>(pTechnoType)->AirportBound
+				&& pFoot->Ammo < pTechnoType->Ammo)
+			{
+				bAircraftsWithoutAmmo = true;
+			}
+		}
+	}
+
+	CellStruct selectedWP = ScenarioClass::Instance()->GetWaypointCoords(scriptArgument);
+	auto pCell = MapClass::Instance->TryGetCellAt(selectedWP);
+	pFocus = abstract_cast<TechnoClass*>(pTeam->Focus);
+	int moveDestinationMode = pTeamData->MoveMissionEndMode;
+	bool arrive = ScriptExt::MoveMissionEndStatus(pTeam, pCell, pLeaderUnit, moveDestinationMode);
+	HouseClass* enemyHouse = HouseClass::Array->GetItem(pLeaderUnit->Owner->EnemyHouseIndex);
+	int targetMask = 1;
+	if (!arrive && !bAircraftsWithoutAmmo)
+	{
+		for (auto pFoot = pTeam->FirstUnit; pFoot; pFoot = pFoot->NextTeamMember)
+		{
+			auto target = GreatestThreat(pFoot, targetMask, 4, enemyHouse, -1, -1, false);
+			if (!pFoot)
+				continue;
+			if (pTeam->Focus && !target) continue;
+			
+			if (IsUnitAvailable(pFoot, true))
+			{
+
+				auto pTarget = pTeam->QueuedFocus;
+				auto destination = pFoot->Destination;
+				// Reset previous command
+				pFoot->ForceMission(Mission::Guard);
+				// Get a cell near the target
+				pFoot->QueueMission(Mission::Move, false);
+				if (target)
+				{
+					pFoot->SetTarget(target);
+					pFoot->SetDestination(nullptr, false);
+					pTeam->Focus = target;
+				}
+				else
+				{
+					const CoordStruct coord = pCell->GetCoords();
+					CellClass* pCellDestination = MapClass::Instance->TryGetCellAt(coord);
+					pFoot->SetDestination(pCellDestination, true);
+					pFoot->SetTarget(nullptr);
+					pTeam->Focus = nullptr;
+				}
+				// Aircraft hack. I hate how this game auto-manages the aircraft missions.
+				if (pFoot->WhatAmI() == AbstractType::Aircraft && pFoot->Ammo > 0 && !pFoot->IsInAir())
+					pFoot->QueueMission(Mission::Move, false);
+			}
+		}
+	}
+	else
+	{
+		// This part of the code is used for updating the "Move" mission in each team unit
+
+		pTeamData->MoveMissionEndMode = 0;
+		pTeamData->IdxSelectedObjectFromAIList = -1;
+
+		if (pTeamData->CloseEnough >= 0)
+			pTeamData->CloseEnough = -1;
+
+		// This action finished
+		pTeam->StepCompleted = true;
+		ScriptExt::Log("AI Scripts - Move: [%s] [%s] (line: %d = %d,%d) Jump to next line: %d = %d,%d (Reason: Reached destination)\n", pTeam->Type->ID, pScript->Type->ID, pScript->CurrentMission, pScript->Type->ScriptActions[pScript->CurrentMission].Action, pScript->Type->ScriptActions[pScript->CurrentMission].Argument, pScript->CurrentMission + 1, pScript->Type->ScriptActions[pScript->CurrentMission + 1].Action, pScript->Type->ScriptActions[pScript->CurrentMission + 1].Argument);
+
+		return;
+	}
+}
 void ScriptExt::CheckUnitTargetingCapabilities(TechnoClass* pTechno, bool& hasAntiGround, bool& hasAntiAir, bool agentMode)
 {
 	auto const pWeaponPrimary = TechnoExt::GetCurrentWeapon(pTechno);

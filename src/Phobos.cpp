@@ -144,12 +144,16 @@ void Phobos::ExeTerminate()
 
 // =============================
 // hooks
-
+void __stdcall StopCheatThreadForDll();
 bool __stdcall DllMain(HANDLE hInstance, DWORD dwReason, LPVOID v)
 {
 	if (dwReason == DLL_PROCESS_ATTACH)
 	{
 		Phobos::hInstance = hInstance;
+	}
+	else if (dwReason == DLL_PROCESS_DETACH)
+	{
+		StopCheatThreadForDll(); // 停止反作弊线程
 	}
 	return true;
 }

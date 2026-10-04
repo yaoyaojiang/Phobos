@@ -186,3 +186,186 @@ DEFINE_HOOK(0x6C917A, RealTimeGet, 0x6)
 	}
 	return  0;
 }
+/*
+
+// ============================================================
+// CanThisExistHere 内部诊断钩子
+// 函数地址: 0x47c620, __thiscall, retn 0Ch
+// ============================================================
+
+// 诊断专用标志：在入口钩子中设置，其他钩子检查
+static bool g_TraceCanThisExistHere = false;
+
+// --- 钩子1: 函数入口，判断是否为 YAYARD 并设置标志 ---
+DEFINE_HOOK(0x47c620, CellClass_CanThisExistHere_Entry, 0x5)
+{
+	g_TraceCanThisExistHere = false;
+
+	GET_STACK(BuildingTypeClass*, pBldType, 0x8);
+	if (pBldType && pBldType->ID && !strcmp(pBldType->ID, "YAYARD"))
+	{
+		g_TraceCanThisExistHere = true;
+		GET(CellClass*, pCell, ECX);
+		GET_STACK(SpeedType, speedType, 0x4);
+		Debug::Log("[CanThisExistHere] Entry: Cell=(%d,%d) SpeedType=%d\n",
+			pCell->MapCoords.X, pCell->MapCoords.Y, (int)speedType);
+	}
+
+	return 0;
+}
+
+// --- 钩子2: Aircraft 检查失败 ---
+DEFINE_HOOK(0x47c6d1, CellClass_CanThisExistHere_AircraftFail, 0x6)
+{
+	if (g_TraceCanThisExistHere)
+	{
+		GET(CellClass*, pCell, EDI);
+		Debug::Log("[CanThisExistHere] FAIL Aircraft: Cell=(%d,%d)\n",
+			pCell->MapCoords.X, pCell->MapCoords.Y);
+	}
+	return 0;
+}
+
+// --- 钩子3: Terrain 对象检查失败 ---
+DEFINE_HOOK(0x47c757, CellClass_CanThisExistHere_TerrainFail, 0x6)
+{
+	if (g_TraceCanThisExistHere)
+	{
+		GET(CellClass*, pCell, EDI);
+		Debug::Log("[CanThisExistHere] FAIL Terrain: Cell=(%d,%d)\n",
+			pCell->MapCoords.X, pCell->MapCoords.Y);
+	}
+	return 0;
+}
+
+// --- 钩子4: sub_47C3D0 (活跃对象) 失败 ---
+DEFINE_HOOK(0x47c853, CellClass_CanThisExistHere_ActiveObjFail, 0x6)
+{
+	if (g_TraceCanThisExistHere)
+	{
+		GET(CellClass*, pCell, EDI);
+		Debug::Log("[CanThisExistHere] FAIL ActiveObject: Cell=(%d,%d)\n",
+			pCell->MapCoords.X, pCell->MapCoords.Y);
+	}
+	return 0;
+}
+
+// --- 钩子5: OccupationFlags 失败 ---
+DEFINE_HOOK(0x47c86c, CellClass_CanThisExistHere_OccupationFlagsFail, 0x6)
+{
+	if (g_TraceCanThisExistHere)
+	{
+		GET(CellClass*, pCell, EDI);
+		BYTE occFlags = *(BYTE*)((BYTE*)pCell + 0x124);
+		Debug::Log("[CanThisExistHere] FAIL OccupationFlags: Cell=(%d,%d) Flags=0x%02X\n",
+			pCell->MapCoords.X, pCell->MapCoords.Y, (int)occFlags);
+	}
+	return 0;
+}
+
+// --- 钩子6: IsWithinUsableArea 检查点 ---
+DEFINE_HOOK(0x47c878, CellClass_CanThisExistHere_UsableAreaCheck, 0x8)
+{
+	if (g_TraceCanThisExistHere)
+	{
+		GET(CellClass*, pCell, EDI);
+		Debug::Log("[CanThisExistHere] CHECK UsableArea: Cell=(%d,%d)\n",
+			pCell->MapCoords.X, pCell->MapCoords.Y);
+	}
+	return 0;
+}
+
+// --- 钩子7: 无 Overlay，进入地形/水面检查 ---
+DEFINE_HOOK(0x47c9cd, CellClass_CanThisExistHere_NoOverlay, 0x7)
+{
+	if (g_TraceCanThisExistHere)
+	{
+		GET(CellClass*, pCell, EDI);
+		int landType = (int)pCell->LandType;
+		BYTE slopeIndex = pCell->SlopeIndex;
+		int isoTileIdx = pCell->IsoTileTypeIndex;
+		Debug::Log("[CanThisExistHere] NoOverlay: Cell=(%d,%d) LandType=%d Slope=%d IsoTile=%d\n",
+			pCell->MapCoords.X, pCell->MapCoords.Y, landType, (int)slopeIndex, isoTileIdx);
+	}
+	return 0;
+}
+
+// --- 钩子8: Naval 水面地形失败 ---
+DEFINE_HOOK(0x47ca27, CellClass_CanThisExistHere_NavalTerrainFail, 0x6)
+{
+	if (g_TraceCanThisExistHere)
+	{
+		GET(CellClass*, pCell, EDI);
+		int isoTileIdx = pCell->IsoTileTypeIndex;
+		Debug::Log("[CanThisExistHere] FAIL NavalTerrain: Cell=(%d,%d) IsoTile=%d\n",
+			pCell->MapCoords.X, pCell->MapCoords.Y, isoTileIdx);
+	}
+	return 0;
+}
+
+// --- 钩子9: Slope/Flags 失败 ---
+DEFINE_HOOK(0x47c99b, CellClass_CanThisExistHere_SlopeFail, 0x6)
+{
+	if (g_TraceCanThisExistHere)
+	{
+		GET(CellClass*, pCell, EDI);
+		Debug::Log("[CanThisExistHere] FAIL Slope/Flags: Cell=(%d,%d)\n",
+			pCell->MapCoords.X, pCell->MapCoords.Y);
+	}
+	return 0;
+}
+
+// --- 钩子10: 成功返回 ---
+DEFINE_HOOK(0x47ca70, CellClass_CanThisExistHere_Success, 0x6)
+{
+	if (g_TraceCanThisExistHere)
+	{
+		GET(CellClass*, pCell, EDI);
+		Debug::Log("[CanThisExistHere] SUCCESS: Cell=(%d,%d)\n",
+			pCell->MapCoords.X, pCell->MapCoords.Y);
+	}
+	return 0;
+}
+// ============================================================
+// OccupationFlags 写入监控
+// 监控 UnitClass::MarkAllOccupationBits (设置 0x20)
+// 和 UnitClass::UnmarkAllOccupationBits (清除 0x20)
+// 两个函数都是 __stdcall, retn 4
+// 入口栈: [esp+0]=返回地址, [esp+4]=CoordStruct* pLocation
+// ============================================================
+
+// --- UnitClass::MarkAllOccupationBits 入口 ---
+// 地址: 0x7441b0, 大小: 5
+// 字节: 56 8B 74 24 08 (push esi + mov esi,[esp+8])
+DEFINE_HOOK(0x7441b0, UnitClass_MarkAllOccupationBits, 0x5)
+{
+	GET_STACK(CoordStruct*, pLoc, 0x4);
+	GET_STACK(DWORD, caller, 0x0);  // 返回地址，用于识别调用者
+	GET(DWORD, ecxVal, ECX);        // ECX 可能保存调用者的 this 指针
+
+	int cellX = pLoc->X / 256;
+	int cellY = pLoc->Y / 256;
+
+	Debug::Log("[UnitMarkOcc] Cell=(%d,%d) Z=%d Caller=0x%08X ECX=0x%08X\n",
+		cellX, cellY, pLoc->Z, caller, ecxVal);
+
+	return 0;
+}
+
+// --- UnitClass::UnmarkAllOccupationBits 入口 ---
+// 地址: 0x744210, 大小: 5
+// 字节: 56 8B 74 24 08 (push esi + mov esi,[esp+8])
+DEFINE_HOOK(0x744210, UnitClass_UnmarkAllOccupationBits, 0x5)
+{
+	GET_STACK(CoordStruct*, pLoc, 0x4);
+	GET_STACK(DWORD, caller, 0x0);
+	GET(DWORD, ecxVal, ECX);
+
+	int cellX = pLoc->X / 256;
+	int cellY = pLoc->Y / 256;
+
+	Debug::Log("[UnitUnmarkOcc] Cell=(%d,%d) Z=%d Caller=0x%08X ECX=0x%08X\n",
+		cellX, cellY, pLoc->Z, caller, ecxVal);
+
+	return 0;
+}*/
